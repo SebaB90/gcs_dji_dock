@@ -115,12 +115,30 @@ button:hover {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
   transition: all 0.15s ease-in-out;
+
+  /* ✅ centraggio perfetto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .map-control-btn:hover,
 .recenter-btn:hover {
   background: #f3f3f3;
   transform: translateY(-2px);
+}
+
+.map-control-btn:active,
+.recenter-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.map-control-btn,
+.recenter-btn {
+  border-radius: 10px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.97);
 }
 
 /* =====================

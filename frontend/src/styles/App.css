@@ -1,60 +1,132 @@
-/* =====================
-   LAYOUT PRINCIPALE
-===================== */
+/* ======== STRUTTURA GENERALE ======== */
 .app-container {
   display: flex;
-  flex-direction: row;
-  height: 100vh;
+  flex-direction: column;
   width: 100vw;
+  height: 100vh;
   overflow: hidden;
   background-color: #eaeaea;
 }
 
-/* Sidebar (Mission Manager) */
-.sidebar {
-  flex: 0 0 260px;
-  height: 100vh;
-  background-color: rgba(255, 255, 255, 0.92);
-  border-right: 2px solid #ccc;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  overflow-y: auto;
-  z-index: 10;
-}
-
-/* Wrapper per la mappa */
 .map-wrapper {
   flex: 1;
-  height: 100vh;
-  width: 100%;
   position: relative;
-  z-index: 1;
-  overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* =====================
-   STILI GLOBALI
-===================== */
-html,
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Inter", Arial, sans-serif;
-  background-color: #eaeaea;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
 }
 
-.loading {
+/* ======== PANNELLI INFERIORI ======== */
+.bottom-panels {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 20px;
+  z-index: 3000;
+}
+
+/* ======== PANNELLO BASE ======== */
+.telemetry-panel,
+.mission-panel {
+  background: rgba(255, 255, 255, 0.93);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  transition: all 0.25s ease-in-out;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #222;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.telemetry-panel:hover,
+.mission-panel:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ======== TITOLI ======== */
+.telemetry-panel h4,
+.mission-panel h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: center;
-  height: 100vh;
-  font-size: 20px;
+  gap: 6px;
+  color: #111;
+}
+
+/* ======== TESTO TELEMETRIA ======== */
+.telemetry-panel p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 2px 0;
+}
+
+/* ======== PULSANTI MISSION MANAGER ======== */
+.mission-panel button {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
   font-weight: 500;
-  color: #333;
+  transition: all 0.2s ease;
+}
+
+.mission-panel button:hover {
+  transform: translateY(-2px);
+}
+
+.mission-btn-primary {
+  background: #27ae60;
+  color: white;
+}
+
+.mission-btn-secondary {
+  background: #e67e22;
+  color: white;
+}
+
+.mission-btn-danger {
+  background: #c0392b;
+  color: white;
+}
+
+.mission-btn-primary:hover {
+  background: #2ecc71;
+}
+
+.mission-btn-secondary:hover {
+  background: #f39c12;
+}
+
+.mission-btn-danger:hover {
+  background: #e74c3c;
+}
+
+/* ======== RESPONSIVE ======== */
+@media (max-width: 900px) {
+  .bottom-panels {
+    flex-direction: column;
+    align-items: flex-start;
+    bottom: 15px;
+    left: 15px;
+    gap: 10px;
+  }
+
+  .telemetry-panel,
+  .mission-panel {
+    width: 90%;
+    max-width: 320px;
+  }
 }

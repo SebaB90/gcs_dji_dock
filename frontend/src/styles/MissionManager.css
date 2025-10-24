@@ -1,49 +1,169 @@
-.mission-manager {
-  background-color: #f7f7f7;
-  padding: 10px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+.mission-panel {
+  background: rgba(255, 255, 255, 0.93);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease-in-out;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #222;
+  cursor: pointer;
+  overflow: hidden;
+  max-height: 220px;
 }
 
-.mission-status p {
-  margin: 6px 0;
-  font-size: 14px;
-}
-
-.mission-altitude input {
-  width: 100%;
-  margin-top: 4px;
-  padding: 5px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.wp-list {
-  background-color: #f7f7f7;
-  padding: 8px;
-  border-radius: 8px;
-  max-height: 120px;
+.mission-panel.expanded {
+  max-height: 80vh;
+  width: 300px;
   overflow-y: auto;
-  font-size: 13px;
 }
 
+.mission-panel:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.mission-panel h4 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mission-collapsed p {
+  font-size: 13px;
+  margin: 4px 0;
+}
+
+.mission-expanded label {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.mission-expanded input[type="number"],
+.mission-expanded select {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  background: white;
+}
+
+/* Tabs */
+.mission-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 10px;
+  gap: 4px;
+}
+
+.mission-tabs button {
+  flex: 1;
+  border: none;
+  background: #f1f1f1;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: 0.2s;
+  font-weight: 500;
+}
+
+.mission-tabs button.active {
+  background: #2980b9;
+  color: white;
+  font-weight: 600;
+  transform: translateY(-1px);
+}
+
+/* Lista waypoint */
+.wp-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.wp-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  background: rgba(240, 240, 240, 0.8);
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin-bottom: 5px;
+}
+
+.wp-item input {
+  width: 55px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Pulsanti */
 .mission-buttons {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .mission-buttons button {
-  background-color: #3498db;
+  flex: 1;
   border: none;
-  color: white;
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 14px;
+  border-radius: 8px;
+  padding: 6px;
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.mission-btn-primary {
+  background: #27ae60;
+}
+.mission-btn-secondary {
+  background: #e67e22;
+}
+.mission-btn-danger {
+  background: #c0392b;
+}
+.mission-btn-send {
+  background: #2980b9;
 }
 
 .mission-buttons button:hover {
-  background-color: #2980b9;
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* Mini map */
+.mini-map-container {
+  margin: 10px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Footer hint */
+.expand-hint {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: #666;
+  text-align: center;
+  font-style: italic;
+  user-select: none;
+}
+
+/* 🔇 Nascondi la scritta "Leaflet | Mapbox | OpenStreetMap" nella mini-mappa */
+.leaflet-control-attribution {
+  display: none !important;
 }

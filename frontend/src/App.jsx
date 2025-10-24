@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import MapView from "./components/MapView";
+import TelemetryPanel from "./components/TelemetryPanel";
 import MissionManager from "./components/MissionManager";
 import "./styles/App.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const DEFAULT_CENTER = [44.5721, 11.2514];
 
 export default function App() {
   const [drone, setDrone] = useState(null);
   const [hangar, setHangar] = useState(null);
-  const [dronePos, setDronePos] = useState(null);
+  const [dronePos, setDronePos] = useState(DEFAULT_CENTER);
   const [dockPos, setDockPos] = useState(null);
   const [path, setPath] = useState([]);
   const [waypoints, setWaypoints] = useState([]);
 
-  // 📡 Lettura telemetria
+  // 📡 Lettura telemetria periodica
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -43,23 +45,12 @@ export default function App() {
       } catch (err) {
         console.error("❌ Errore lettura telemetria:", err);
       }
-    }, 1500);
+    }, 300);  // tempo in millisecondi tra una lettura e l'altra
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="app-container">
-      <div className="sidebar">
-        <MissionManager
-          drone={drone}
-          hangar={hangar}
-          waypoints={waypoints}
-          setWaypoints={setWaypoints}
-          dockPos={dockPos}
-          dronePos={dronePos}
-        />
-      </div>
-
       <div className="map-wrapper">
         <MapView
           dronePos={dronePos}
@@ -68,6 +59,18 @@ export default function App() {
           waypoints={waypoints}
           setWaypoints={setWaypoints}
         />
+
+        {/* 📊 Barra inferiore sinistra: Telemetria + Mission Manager */}
+        <div className="bottom-panels">
+          <TelemetryPanel drone={drone} hangar={hangar} dronePos={dronePos} />
+          <MissionManager
+            waypoints={waypoints}
+            setWaypoints={setWaypoints}
+            dronePos={dronePos}
+            dockPos={dockPos}
+            backendUrl={BACKEND_URL}
+          />
+        </div>
       </div>
     </div>
   );

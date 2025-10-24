@@ -1,35 +1,26 @@
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  Tooltip,
-  useMap,
-} from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/MapView.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import L from "leaflet";
 
 const DEFAULT_CENTER = [44.5721, 11.2514];
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-const MAPBOX_STYLE_ID = "mapbox/satellite-v9";
+const MAPBOX_STYLE_ID = "satellite-v9";
 
-// === Icone personalizzate ===
 const droneIcon = new L.Icon({
   iconUrl:
     "https://navigate.pl/wp-content/uploads/2024/04/EA220_drone-V1_%E7%99%BD%E5%BA%95%E5%9B%BE%E6%97%A0%E9%98%B4%E5%BD%B1_0829_020065-1.png",
   iconSize: [35, 35],
   iconAnchor: [17, 17],
 });
-
 const dockIcon = new L.Icon({
   iconUrl: "https://dronexcanada.ca/cdn/shop/files/DJI-Dock1_3.png?v=1711490763&width=480",
   iconSize: [50, 50],
   iconAnchor: [25, 25],
 });
 
-// === Forza ridisegno mappa ===
+// ✅ Fixa il resize
 function FixMap() {
   const map = useMap();
   useEffect(() => {
@@ -37,7 +28,7 @@ function FixMap() {
       map.invalidateSize(true);
       map._resetView(map.getCenter(), map.getZoom(), true);
     };
-    const timeout = setTimeout(fix, 500);
+    const timeout = setTimeout(fix, 800);
     window.addEventListener("resize", fix);
     return () => {
       clearTimeout(timeout);
@@ -47,63 +38,75 @@ function FixMap() {
   return null;
 }
 
-// === Controlli personalizzati ===
-function CustomControls({ dronePos, dockPos }) {
+// ✅ Controlli personalizzati
+function MapControls({ dronePos }) {
   const map = useMap();
 
+  const zoomIn = () => map.zoomIn();
+  const zoomOut = () => map.zoomOut();
+  const recenter = () => {
+    if (dronePos) {
+      map.flyTo(dronePos, map.getZoom(), { animate: true, duration: 1 });
+    }
+  };
+
   return (
-    <div className="controls-wrapper">
-      <button className="map-control-btn" onClick={() => map.zoomIn()}>
+    <div className="custom-map-controls">
+      <button className="ctrl-btn" onClick={zoomIn}>
         +
       </button>
-      <button className="map-control-btn" onClick={() => map.zoomOut()}>
+      <button className="ctrl-btn" onClick={zoomOut}>
         −
       </button>
-      <button
-        className="recenter-btn"
-        onClick={() => {
-          if (dronePos) map.setView(dronePos, 19);
-          else if (dockPos) map.setView(dockPos, 19);
-        }}
-      >
-        📍
+      <button className="ctrl-btn recenter" onClick={recenter}>
+        🎯
       </button>
     </div>
   );
 }
 
-// === Mappa principale ===
 export default function MapView({ dronePos, dockPos, path, waypoints, setWaypoints }) {
+  const [useFallback, setUseFallback] = useState(false);
+
   return (
     <div className="map-wrapper">
       <MapContainer
         center={dronePos ?? dockPos ?? DEFAULT_CENTER}
         zoom={19}
         minZoom={15}
-        maxZoom={22}
+        maxZoom={23}
         zoomControl={false}
         preferCanvas={true}
         style={{ width: "100%", height: "100%" }}
       >
-        {/* === MAPBOX TILE === */}
-        <TileLayer
-          url={`https://api.mapbox.com/styles/v1/${MAPBOX_STYLE_ID}/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`}
-          tileSize={512}
-          zoomOffset={-1}
-          maxZoom={22}
-          minZoom={3}
-          keepBuffer={5}
-          attribution='© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        />
+        {!useFallback ? (
+          <TileLayer
+            url={`https://api.mapbox.com/styles/v1/mapbox/${MAPBOX_STYLE_ID}/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`}
+            tileSize={512}
+            zoomOffset={-1}
+            maxZoom={23}
+            crossOrigin={true}
+            attribution='© Mapbox © OpenStreetMap contributors'
+            eventHandlers={{
+              tileerror: () => {
+                console.warn("⚠️ Mapbox bloccato, passo a OSM fallback...");
+                setUseFallback(true);
+              },
+            }}
+          />
+        ) : (
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={20}
+            attribution='© OpenStreetMap contributors'
+          />
+        )}
 
-        {/* === Dock e Drone === */}
         {dockPos && <Marker position={dockPos} icon={dockIcon} />}
         {dronePos && <Marker position={dronePos} icon={droneIcon} />}
 
-        {/* === Path === */}
-        {path?.length > 1 && <Polyline positions={path} color="blue" />}
+        {path.length > 1 && <Polyline positions={path} color="blue" />}
 
-        {/* === Waypoints === */}
         {waypoints.map((wp, i) => (
           <Marker
             key={i}
@@ -118,17 +121,14 @@ export default function MapView({ dronePos, dockPos, path, waypoints, setWaypoin
               },
             }}
           >
-            <Tooltip permanent>{`WP${i + 1}`}</Tooltip>
+            <Tooltip permanent>{`WP${i + 1} (${wp.alt}m)`}</Tooltip>
           </Marker>
         ))}
 
-        {/* === Linea rossa tra i waypoints === */}
-        {waypoints.length > 1 && (
-          <Polyline positions={waypoints.map((wp) => [wp.lat, wp.lon])} color="red" />
-        )}
+        <Polyline positions={waypoints.map((wp) => [wp.lat, wp.lon])} color="red" />
 
         <FixMap />
-        <CustomControls dronePos={dronePos} dockPos={dockPos} />
+        <MapControls dronePos={dronePos} />
       </MapContainer>
     </div>
   );

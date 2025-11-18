@@ -3,6 +3,8 @@ import axios from "axios";
 import MapView from "./components/MapView";
 import TelemetryPanel from "./components/TelemetryPanel";
 import MissionManager from "./components/MissionManager";
+import VideoPanel from "./components/VideoPanel";
+import WeatherPanel from "./components/WeatherPanel";
 import "./styles/App.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
@@ -45,13 +47,20 @@ export default function App() {
       } catch (err) {
         console.error("❌ Errore lettura telemetria:", err);
       }
-    }, 300);  // tempo in millisecondi tra una lettura e l'altra
+    }, 300);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="app-container">
       <div className="map-wrapper">
+        {/* 🎥 Pannello video sempre visibile */}
+        <VideoPanel />
+
+        {/* 🌤 Meteo */}
+        <WeatherPanel hangar={hangar} drone={drone} />
+
+        {/* 🗺️ Mappa principale */}
         <MapView
           dronePos={dronePos}
           dockPos={dockPos}
@@ -60,7 +69,7 @@ export default function App() {
           setWaypoints={setWaypoints}
         />
 
-        {/* 📊 Barra inferiore sinistra: Telemetria + Mission Manager */}
+        {/* 📊 Barra inferiore */}
         <div className="bottom-panels">
           <TelemetryPanel drone={drone} hangar={hangar} dronePos={dronePos} />
           <MissionManager

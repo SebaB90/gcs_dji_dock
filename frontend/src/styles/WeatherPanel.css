@@ -1,0 +1,138 @@
+.weather-panel {
+  position: absolute;
+  top: 260px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 10px 12px;
+  width: 230px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  z-index: 3500;
+  font-family: "Inter", system-ui, sans-serif;
+  color: #111;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  overflow: hidden;
+  max-height: 220px;
+}
+
+.weather-panel.expanded {
+  width: 420px;
+  max-height: 80vh;
+}
+
+/* HEADER */
+
+.weather-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weather-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.weather-main-icon {
+  font-size: 22px;
+}
+
+.weather-main-text h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weather-condition-label {
+  font-size: 12px;
+  color: #555;
+}
+
+.weather-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  font-size: 11.5px;
+}
+
+.weather-temp-row,
+.weather-wind-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wind-pill {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.wind-ok {
+  background: #27ae60;
+}
+.wind-warn {
+  background: #f1c40f;
+}
+.wind-danger {
+  background: #e74c3c;
+}
+
+.weather-expand-icon {
+  margin-left: 4px;
+}
+
+/* RIGA RAPIDA */
+
+.weather-quick-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 11.5px;
+}
+
+.quick-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* SEZIONE ESPANSA */
+
+.weather-expanded {
+  margin-top: 8px;
+  margin-right: -4px; /* piccolo spazio per scroll */
+  padding-right: 4px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.chart-block {
+  margin-bottom: 10px;
+  padding: 6px 6px 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.chart-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+/* HOVER */
+
+.weather-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+}

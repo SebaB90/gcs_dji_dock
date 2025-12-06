@@ -1,0 +1,183 @@
+.main-sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 180px; 
+  height: 100vh;
+  background: #1c1c1e; 
+  border-right: 1px solid #333;
+  padding: 0; /* Rimuoviamo il padding generale, lo gestiamo nei blocchi */
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+/* NUOVI STILI LOGO */
+.logo-container {
+    padding: 15px 10px 10px 10px; /* Spazio in alto e laterale */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.company-logo {
+    max-width: 50%; /* Si adatta alla larghezza della sidebar (180px) */
+    height: auto;
+    opacity: 0.95; /* Leggermente trasparente per un look flat */
+}
+
+.separator {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 5px 10px 10px 10px; /* Separazione sotto il logo e prima dei dati di stato */
+}
+
+/* --- 1. Barra di Stato Compatta (Dati Essenziali) --- */
+
+.status-bar-compact {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px;
+}
+
+.battery-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  color: #dcdcdc;
+}
+
+.battery-icon {
+  font-size: 20px;
+  margin-right: 5px;
+}
+
+.battery-bar progress {
+  flex-grow: 1;
+  height: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  margin-right: 8px;
+  border: none;
+}
+
+/* Colore barra di progresso (Default: Verde) */
+.battery-bar progress::-webkit-progress-bar {
+  background-color: #333;
+  border-radius: 3px;
+}
+
+.battery-bar progress::-webkit-progress-value {
+  background-color: #2ecc71; /* Verde standard */
+  border-radius: 3px;
+}
+
+/* Override per Batteria Bassa (Rosso) */
+.battery-bar progress.low-battery::-webkit-progress-value {
+  background-color: #ff6347; /* Rosso */
+}
+.battery-bar progress::-moz-progress-bar {
+    background-color: #2ecc71; /* Firefox */
+    border-radius: 3px;
+}
+.battery-bar progress.low-battery::-moz-progress-bar {
+    background-color: #ff6347;
+}
+
+.battery-bar .battery-value {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Indicatore Generico (Link, GPS, etc.) */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.indicator-icon {
+  font-size: 16px;
+  margin-right: 5px;
+  color: #2ecc71; /* Stato OK */
+}
+
+.status-indicator.critical .indicator-icon {
+  color: #ff6347; /* Stato Critico */
+}
+
+.indicator-label {
+  flex-grow: 1;
+  opacity: 0.8;
+}
+
+.indicator-value {
+  font-weight: bold;
+}
+
+/* --- 2. Navigazione Cliccabile --- */
+
+.navigation-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 5px; /* Spazio interno ridotto */
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  color: #dcdcdc;
+  transition: background 0.2s;
+}
+
+.nav-item:hover {
+  background: #2a2a2c;
+}
+
+.nav-item.active {
+  background: #1a4ccf; /* Colore di accentuazione */
+  color: white;
+  font-weight: bold;
+}
+
+.nav-icon {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.nav-label {
+  font-size: 13px;
+}
+
+/* --- 3. Logout Section --- */
+
+.logout-section {
+  margin-top: auto; /* Push to bottom */
+  padding: 10px 5px 15px 5px;
+}
+
+.logout-btn {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.logout-btn:hover {
+  background: rgba(231, 76, 60, 0.2);
+  border-color: rgba(231, 76, 60, 0.5);
+}
+
+.logout-btn .nav-icon {
+  color: #e74c3c;
+}
+
+.logout-btn .nav-label {
+  color: #e74c3c;
+}

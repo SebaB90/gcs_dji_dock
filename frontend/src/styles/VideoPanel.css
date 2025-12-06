@@ -1,75 +1,302 @@
-.video-panel {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  width: 380px;
-  height: 230px;
-  background: rgba(0, 0, 0, 0.85);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.4s ease;
-  backdrop-filter: blur(6px);
+/* -------------------------------------- */
+/* DASHBOARD PANEL (Contenitore Base)     */
+/* -------------------------------------- */
+.dashboard-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: #0e0e0e;
+    color: #ccc;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
 }
 
-/* 📺 Espanso ma sempre ancorato in alto a sinistra */
-.video-panel.expanded {
-  width: 850px;
-  height: 480px;
-  border-radius: 16px;
-  z-index: 3000;
+/* -------------------------------------- */
+/* 1. TOOLBAR SUPERIORE                   */
+/* -------------------------------------- */
+.panel-toolbar {
+    flex: 0 0 36px; /* Altezza fissa */
+    background: #141414;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    z-index: 50;
 }
 
-.video-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  padding: 6px 10px;
-  font-size: 14px;
-  font-weight: 500;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+.toolbar-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-.video-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* Gruppo bottoni (DOCK / DRONE) */
+.view-controls-group {
+    display: flex;
+    background: #000;
+    border-radius: 4px;
+    padding: 2px;
+    border: 1px solid #333;
+    gap: 2px;
 }
 
-.live-indicator {
-  color: #ff3333;
-  font-size: 12px;
-  font-weight: 700;
-  animation: pulse 1.3s infinite;
+.view-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.3; }
-  100% { opacity: 1; }
+.view-btn:hover {
+    color: #ccc;
+    background: rgba(255,255,255,0.05);
 }
 
-.expand-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s ease;
-}
-.expand-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
+.view-btn.active {
+    background: #222;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
 
-.video-body {
-  flex: 1;
-  background: black;
-  overflow: hidden;
+/* Indicatori LED pulsanti */
+.view-btn .indicator {
+    width: 6px; height: 6px; border-radius: 50%; background-color: #444;
+}
+.view-btn.active .indicator {
+    background-color: #2ecc71; box-shadow: 0 0 4px #2ecc71;
+}
+
+/* -------------------------------------- */
+/* 2. SEZIONE VIDEO                       */
+/* -------------------------------------- */
+.video-row {
+    flex: 1; /* Occupa tutto lo spazio rimasto */
+    display: flex;
+    flex-direction: row;
+    border-bottom: 2px solid #2a2a2a;
+    min-height: 200px;
+    overflow: hidden;
+}
+
+.video-col {
+    flex: 1; /* Si allarga automaticamente */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-right: 1px solid #2a2a2a;
+    position: relative;
+    min-width: 0;
+}
+.video-col:last-child { border-right: none; }
+
+/* Frame del Video */
+.stream-frame {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.stream-header {
+    flex: 0 0 auto;
+    padding: 4px 10px;
+    background: #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid #333;
+    height: 32px; /* Altezza fissa header video */
+}
+
+.stream-title { color: #fff; letter-spacing: 0.5px; }
+
+.header-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Status Live */
+.stream-status {
+    display: flex; alignItems: center; gap: 6px; color: #e74c3c;
+    padding-left: 8px;
+    font-size: 10px; font-weight: bold;
+}
+
+/* Contenitore Iframe */
+.stream-content {
+    flex: 1;
+    position: relative;
+    background: #000;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* --- FIX CRUCIALE: RIMUOVE CONTROLLI VIDEO --- */
+/* Disabilita eventi mouse sull'iframe, così non appaiono i controlli play/pause */
+.stream-content iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100% !important; height: 100% !important;
+    border: none;
+    object-fit: contain;
+    pointer-events: none; /* Niente click = niente controlli */
+}
+
+/* Placeholder */
+.placeholder-video {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: #555;
+    background: #080808;
+}
+.no-signal-box {
+    display: flex; flexDirection: column; alignItems: center; gap: 10px; opacity: 0.4;
+}
+
+/* Messaggio tutto spento */
+.no-streams-message {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #444; background: #0e0e0e;
+    font-size: 12px; letter-spacing: 1px;
+}
+
+/* Overlay Info in basso */
+.stream-overlay-info {
+    position: absolute; bottom: 5px; left: 5px;
+    font-size: 10px; color: rgba(255,255,255,0.8);
+    background: rgba(0,0,0,0.4); padding: 2px 6px;
+    border-radius: 4px; pointer-events: none;
+    display: flex; gap: 8px; z-index: 10;
+}
+
+/* -------------------------------------- */
+/* 3. TOGGLE TERMICO (Header)             */
+/* -------------------------------------- */
+.cam-toggle {
+    display: flex;
+    background: #000;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 2px;
+    height: 20px;
+}
+
+.cam-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 0 8px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 16px;
+}
+
+.cam-toggle-btn:hover { color: #ccc; }
+
+.cam-toggle-btn.active-vis {
+    background: #1a4ccf; color: white; box-shadow: 0 0 4px rgba(26, 76, 207, 0.5);
+}
+
+.cam-toggle-btn.active-ir {
+    background: #e74c3c; color: white; box-shadow: 0 0 4px rgba(231, 76, 60, 0.5);
+}
+
+/* -------------------------------------- */
+/* 4. TELEMETRIA VISUALE                  */
+/* -------------------------------------- */
+.instruments-row {
+    flex: 0 0 auto; /* Si adatta al contenuto */
+    background: #141414;
+    padding: 10px;
+    display: flex;
+    border-top: 1px solid #333;
+}
+
+.pfd-container { width: 100%; }
+
+.telemetry-header {
+    font-size: 11px; color: #666; margin-bottom: 8px; 
+    text-transform: uppercase; font-weight: bold;
+}
+
+.telemetry-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+/* Card Metrica */
+.t-item {
+    background: #1e1e1e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-left: 2px solid #333;
+    min-height: 60px;
+}
+
+.t-header {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; margin-bottom: 2px;
+}
+
+.t-item .label { 
+    font-size: 10px; color: #888; font-weight: 600; letter-spacing: 0.5px; 
+}
+
+.t-value-group {
+    display: flex; align-items: baseline; gap: 4px;
+}
+
+.t-item .value { 
+    font-size: 18px; color: #fff; font-weight: 700; line-height: 1; font-family: monospace, sans-serif;
+}
+.t-item .unit { font-size: 10px; color: #666; }
+
+/* Indicatori Visuali */
+.trend-icon { margin-right: 4px; }
+
+.progress-track {
+    width: 100%; height: 4px; background: #333;
+    border-radius: 2px; margin-top: 6px; overflow: hidden;
+}
+.progress-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+/* Utility Colori */
+.status-good { color: #2ecc71 !important; }
+.status-warn { color: #f1c40f !important; }
+.status-crit { color: #e74c3c !important; }
+
+.bg-good { background-color: #2ecc71 !important; }
+.bg-warn { background-color: #f1c40f !important; }
+.bg-crit { background-color: #e74c3c !important; }
+
+/* Responsive Mobile */
+@media (max-width: 768px) {
+    .video-row { flex-direction: column; }
+    .video-col { border-right: none; border-bottom: 1px solid #333; height: 50%; }
+    .telemetry-grid { grid-template-columns: repeat(2, 1fr); }
 }

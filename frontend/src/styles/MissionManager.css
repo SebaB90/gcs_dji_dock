@@ -1,169 +1,235 @@
 .mission-panel {
-  background: rgba(255, 255, 255, 0.93);
-  border-radius: 14px;
+  /* Nuovi stili DARK MODE */
+  background: rgba(30, 30, 30, 0.95); /* Scuro semitrasparente */
+  border: 1px solid #444; /* Bordo sottile */
+  border-radius: 12px;
   padding: 14px 16px;
-  min-width: 220px;
-  max-width: 280px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  min-width: 260px; /* Leggermente più largo per leggibilità */
+  max-width: 320px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5); /* Ombra più profonda */
   backdrop-filter: blur(10px);
   transition: all 0.3s ease-in-out;
   font-family: "Inter", system-ui, sans-serif;
-  color: #222;
+  color: #f0f0f0; /* Testo chiaro */
   cursor: pointer;
   overflow: hidden;
-  max-height: 220px;
+  max-height: 180px; /* Leggermente più compatto da chiuso */
 }
 
 .mission-panel.expanded {
-  max-height: 80vh;
+  max-height: 85vh; /* Più spazio verticale */
   width: 300px;
   overflow-y: auto;
 }
 
 .mission-panel:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  transform: none; /* Rimosso l'effetto hover verticale per non interferire con la mappa */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
 .mission-panel h4 {
-  margin: 0 0 8px 0;
-  font-size: 15px;
-  font-weight: 600;
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
 }
 
+/* Stato Chiuso */
 .mission-collapsed p {
   font-size: 13px;
   margin: 4px 0;
+  color: #ccc;
 }
 
+/* Stato Aperto */
 .mission-expanded label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+  color: #ccc;
+  text-transform: uppercase;
 }
 
 .mission-expanded input[type="number"],
 .mission-expanded select {
   width: 100%;
-  padding: 5px;
-  border: 1px solid #ccc;
+  padding: 8px 10px; /* Padding migliorato */
+  border: 1px solid #555;
   border-radius: 6px;
   font-size: 13px;
-  margin-bottom: 8px;
-  background: white;
+  margin-bottom: 12px;
+  background: #333; /* Sfondo scuro per gli input */
+  color: #fff;
+  cursor: text;
 }
 
 /* Tabs */
 .mission-tabs {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 10px;
-  gap: 4px;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #444;
+  gap: 6px;
 }
 
 .mission-tabs button {
   flex: 1;
-  border: none;
-  background: #f1f1f1;
-  padding: 6px;
+  border: 1px solid #444;
+  background: #333;
+  padding: 8px 4px;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 13px;
   transition: 0.2s;
   font-weight: 500;
+  color: #ccc;
 }
 
 .mission-tabs button.active {
-  background: #2980b9;
+  background: #1a4ccf; /* Blu accento */
   color: white;
   font-weight: 600;
-  transform: translateY(-1px);
+  border-color: #1a4ccf;
+  transform: none;
 }
 
-/* Lista waypoint */
+.mission-tabs button:hover:not(.active) {
+    background: #444;
+}
+
+
+/* ✏️ CREA MISSIONE - Lista waypoint */
 .wp-list {
   max-height: 200px;
   overflow-y: auto;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  padding-right: 5px;
 }
+/* Scrollbar customizzata per la dark mode */
+.wp-list::-webkit-scrollbar {
+    width: 6px;
+}
+.wp-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+.wp-list::-webkit-scrollbar-track {
+    background: #252525;
+}
+
 
 .wp-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
-  background: rgba(240, 240, 240, 0.8);
-  border-radius: 6px;
-  padding: 4px 6px;
-  margin-bottom: 5px;
+  font-size: 12px;
+  background: #252525; /* Sfondo scuro per l'elemento */
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-left: 3px solid #1a4ccf; /* Accento a sinistra */
+}
+
+.wp-item strong {
+    color: #fff;
+    min-width: 40px;
+}
+
+.wp-item span {
+    font-size: 11px;
+    color: #bbb;
+    flex-grow: 1;
+    margin: 0 5px;
 }
 
 .wp-item input {
-  width: 55px;
-  border: 1px solid #ccc;
+  width: 50px;
+  height: 24px;
+  padding: 2px 4px;
+  border: 1px solid #555;
   border-radius: 4px;
   font-size: 12px;
   text-align: center;
+  background: #333;
+  color: #fff;
+  margin: 0; /* Rimuovi margini esterni */
 }
 
-/* Pulsanti */
+.no-wp {
+    font-style: italic;
+    color: #999;
+    font-size: 13px;
+    text-align: center;
+    margin: 15px 0;
+}
+
+/* Pulsanti (Grid) */
 .mission-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .mission-buttons button {
-  flex: 1;
   border: none;
-  border-radius: 8px;
-  padding: 6px;
+  border-radius: 6px;
+  padding: 8px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s ease;
   color: white;
+  text-transform: uppercase;
 }
-
+/* Riorganizzazione dei colori dei pulsanti */
 .mission-btn-primary {
-  background: #27ae60;
+  background: #27ae60; /* Verde (Aggiungi) */
 }
 .mission-btn-secondary {
-  background: #e67e22;
+  background: #e67e22; /* Arancione (Rimuovi) */
 }
 .mission-btn-danger {
-  background: #c0392b;
+  background: #c0392b; /* Rosso (Reset) */
 }
 .mission-btn-send {
-  background: #2980b9;
+  background: #1a4ccf; /* Blu Accento (Invia) */
+  grid-column: span 2; /* Invia occupa due colonne */
 }
 
 .mission-buttons button:hover {
-  transform: translateY(-2px);
+  transform: none; /* Rimuovi l'animazione di sollevamento per i pulsanti del drawer */
   opacity: 0.9;
+}
+
+/* 📂 CARICA MISSIONE */
+.mission-load p {
+    color: #fff;
+    font-size: 14px;
+    margin: 8px 0;
 }
 
 /* Mini map */
 .mini-map-container {
-  margin: 10px 0;
-  border-radius: 10px;
+  margin: 10px 0 15px 0;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* Footer hint */
 .expand-hint {
-  margin-top: 8px;
-  font-size: 11.5px;
-  color: #666;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #999;
   text-align: center;
   font-style: italic;
   user-select: none;
 }
 
-/* 🔇 Nascondi la scritta "Leaflet | Mapbox | OpenStreetMap" nella mini-mappa */
+/* Fix per MapBox/Leaflet in Dark Mode */
 .leaflet-control-attribution {
   display: none !important;
 }

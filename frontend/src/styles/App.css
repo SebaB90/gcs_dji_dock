@@ -1,49 +1,134 @@
-/* ======== STRUTTURA GENERALE ======== */
+/* ==========================================================================
+   SEZIONE 1: STRUTTURA LAYOUT (SPLIT VIEW SYSTEM)
+   ========================================================================== */
+
+html, body, #root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Importante: niente scroll sulla pagina intera */
+    background-color: #1e1e1e; /* Colore di sfondo scuro uniforme */
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Il contenitore principale ora usa FLEXBOX invece di display:block */
 .app-container {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background-color: #eaeaea;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.map-wrapper {
-  flex: 1;
-  position: relative;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
+/* --- A. SIDEBAR FISSA A SINISTRA --- */
+.sidebar-area {
+    flex: 0 0 auto; /* Non si ridimensiona mai */
+    width: auto;    /* La larghezza è definita dal contenuto (MainSidebar) */
+    z-index: 2000;
+    height: 100%;
+    background: #000;
 }
 
-/* ======== PANNELLI INFERIORI ======== */
-.bottom-panels {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 20px;
-  z-index: 3000;
+/* --- B. CONTENITORE SPLIT (MAPPA + VIDEO) --- */
+.split-view-container {
+    flex: 1; /* Occupa tutto lo spazio rimanente */
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    height: 100%;
+    overflow: hidden;
 }
 
-/* ======== PANNELLO BASE ======== */
+/* 1. Pannello Mappa (Sinistra) */
+.left-pane-map {
+    height: 100%;
+    /* La width è gestita dinamicamente da React via style inline */
+    position: relative;
+    z-index: 1;
+    background-color: #222; /* Colore di fallback mentre carica la mappa */
+}
+
+/* 2. Il Divisore Trascinabile (Gutter) */
+.gutter-col {
+    width: 10px; /* Spessore della maniglia */
+    background-color: #2a2a2a;
+    cursor: col-resize; /* Cursore freccia sinistra-destra */
+    position: relative;
+    z-index: 3000;
+    transition: background-color 0.2s;
+    border-left: 1px solid #111;
+    border-right: 1px solid #111;
+    
+    /* Centra l'indicatore visivo */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Indicatore visivo (la barretta verticale al centro) */
+.gutter-col::after {
+    content: "";
+    height: 30px;
+    width: 2px;
+    background-color: #666;
+    border-radius: 2px;
+}
+
+.gutter-col:hover, 
+.gutter-col:active {
+    background-color: #1a4ccf; /* Blu DJI quando ci passi sopra */
+}
+
+.gutter-col:active::after {
+    background-color: #fff;
+}
+
+/* 3. Pannello Dashboard (Destra) */
+.right-pane-dashboard {
+    height: 100%;
+    /* La width è il rimanente (100% - leftWidth) */
+    background-color: #0e0e0e;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 300px; /* Evita che il pannello scompaia del tutto */
+}
+
+/* Classe di utilità aggiunta al body mentre si trascina */
+.resizing {
+    cursor: col-resize !important;
+    user-select: none; /* Evita di selezionare testo mentre trascini */
+}
+/* Importante: previene che gli iframe (video) rubino il focus del mouse */
+.resizing iframe {
+    pointer-events: none;
+}
+
+
+/* ==========================================================================
+   SEZIONE 2: STILI COMPONENTI & VECCHIA UI (Salvata dal tuo vecchio CSS)
+   ========================================================================== */
+
+/* Questi stili servono ancora per le card nella SidebarDrawer o per 
+   eventuali pannelli flottanti che hai mantenuto */
+
 .telemetry-panel,
 .mission-panel {
   background: rgba(255, 255, 255, 0.93);
   border-radius: 14px;
   padding: 14px 16px;
-  min-width: 220px;
-  max-width: 280px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(10px);
   transition: all 0.25s ease-in-out;
-  font-family: "Inter", system-ui, sans-serif;
   color: #222;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  margin-bottom: 10px; /* Aggiunto margine nel caso siano in lista */
 }
 
 .telemetry-panel:hover,
@@ -52,7 +137,6 @@
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* ======== TITOLI ======== */
 .telemetry-panel h4,
 .mission-panel h4 {
   margin-top: 0;
@@ -65,14 +149,13 @@
   color: #111;
 }
 
-/* ======== TESTO TELEMETRIA ======== */
 .telemetry-panel p {
   font-size: 13px;
   line-height: 1.4;
   margin: 2px 0;
 }
 
-/* ======== PULSANTI MISSION MANAGER ======== */
+/* --- BOTTONI MISSIONI --- */
 .mission-panel button {
   border: none;
   border-radius: 8px;
@@ -81,52 +164,51 @@
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
+  margin-top: 5px;
+  width: 100%; /* Rendiamoli full width nelle card */
 }
 
 .mission-panel button:hover {
   transform: translateY(-2px);
 }
 
-.mission-btn-primary {
-  background: #27ae60;
-  color: white;
-}
+.mission-btn-primary { background: #27ae60; color: white; }
+.mission-btn-secondary { background: #e67e22; color: white; }
+.mission-btn-danger { background: #c0392b; color: white; }
 
-.mission-btn-secondary {
-  background: #e67e22;
-  color: white;
-}
+.mission-btn-primary:hover { background: #2ecc71; }
+.mission-btn-secondary:hover { background: #f39c12; }
+.mission-btn-danger:hover { background: #e74c3c; }
 
-.mission-btn-danger {
-  background: #c0392b;
-  color: white;
-}
 
-.mission-btn-primary:hover {
-  background: #2ecc71;
-}
+/* ==========================================================================
+   SEZIONE 3: RESPONSIVE
+   ========================================================================== */
 
-.mission-btn-secondary:hover {
-  background: #f39c12;
-}
-
-.mission-btn-danger:hover {
-  background: #e74c3c;
-}
-
-/* ======== RESPONSIVE ======== */
-@media (max-width: 900px) {
-  .bottom-panels {
+@media (max-width: 768px) {
+  /* Su mobile, la split view diventa verticale o nasconde la mappa */
+  .split-view-container {
     flex-direction: column;
-    align-items: flex-start;
-    bottom: 15px;
-    left: 15px;
-    gap: 10px;
+  }
+  
+  .gutter-col {
+    width: 100%;
+    height: 10px;
+    cursor: row-resize;
+    border-top: 1px solid #333;
+    border-bottom: 1px solid #333;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .gutter-col::after {
+      width: 40px;
+      height: 2px;
   }
 
-  .telemetry-panel,
-  .mission-panel {
-    width: 90%;
-    max-width: 320px;
+  /* Reset delle larghezze per il mobile */
+  .left-pane-map, .right-pane-dashboard {
+      width: 100% !important; /* Forza larghezza piena su mobile */
+      height: 50%; /* Divide a metà orizzontalmente */
   }
 }

@@ -1,0 +1,51 @@
+.health-manager-content {
+    color: #f0f0f0;
+    font-family: 'Inter', sans-serif;
+}
+
+.history-info {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 15px;
+    text-align: center;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #333;
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.chart-block {
+    background: #252525;
+    padding: 10px 10px 0 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+}
+
+.chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccc;
+    margin-bottom: 5px;
+    padding-left: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Customizzazione Recharts */
+.recharts-legend-wrapper {
+    padding: 0 0 5px 0;
+}
+.recharts-legend-item {
+    font-size: 11px;
+    color: #ccc !important;
+}
+
+/* Tooltip customizzata (stile base) */
+.custom-tooltip {
+    /* Stili definiti nel componente CustomTooltip in JS */
+}

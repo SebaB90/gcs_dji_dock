@@ -1,0 +1,63 @@
+.drawer {
+  position: absolute;
+  top: 0;
+  left: 180px; /* **IMPORTANTE:** Deve combaciare con la nuova larghezza della MainSidebar (180px) */
+  width: 400px; /* Leggermente più largo per un contenuto più leggibile */
+  height: 100vh;
+  background: #1e1e1e; /* Sfondo leggermente più chiaro del nero, ma scuro */
+  color: #f0f0f0;
+  border-left: 1px solid #333;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5); /* Ombra più profonda */
+  padding: 0; /* Rimosso padding dal contenitore principale */
+  z-index: 3001;
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Animazione più fluida */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Intestazione del drawer per titolo e bottone di chiusura */
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #333; /* Separatore pulito */
+}
+
+.drawer-title {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin: 0;
+    color: #fff;
+}
+
+/* Bottone di chiusura più discreto */
+.drawer-close {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-icon {
+    font-size: 20px;
+    color: #999;
+}
+
+.drawer-close:hover .close-icon {
+    color: #fff;
+}
+
+/* Contenuto scorrevole */
+.drawer-content {
+    padding: 20px;
+    flex-grow: 1; /* Permette al contenuto di occupare lo spazio rimanente */
+    overflow-y: auto; /* Aggiunge scroll se il contenuto è troppo lungo */
+}
+
+/* Animazione aggiornata */
+@keyframes slideIn {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}

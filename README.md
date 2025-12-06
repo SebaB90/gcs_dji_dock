@@ -64,13 +64,27 @@ cd gcs_dji_dock
 ---
 
 ### 🖥️ 2. Avvia il backend (FastAPI)
+
+**Opzione A - Usando il venv del progetto (consigliato):**
+```bash
+cd backend
+# Il venv è già nella root del progetto (.venv)
+../.venv/bin/uvicorn app.main:app --reload --port 8000
+```
+
+**Opzione B - Creando un nuovo venv locale:**
 ```bash
 cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cd app
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
+```
+
+**Opzione C - Background (senza --reload):**
+```bash
+cd backend
+nohup ../.venv/bin/python -m uvicorn app.main:app --port 8000 > /tmp/backend.log 2>&1 &
 ```
 
 Backend attivo su → [http://localhost:8000](http://localhost:8000)
@@ -193,3 +207,42 @@ GitHub → [@SebaB90](https://github.com/SebaB90)
 
 Questo progetto è rilasciato sotto licenza **MIT**.  
 Può essere utilizzato e modificato liberamente citando l’autore originale.
+
+---
+
+## 🔐 Authentication System
+
+The application now includes enterprise-grade JWT-based authentication for secure access control.
+
+### Features
+- ✅ JWT token-based authentication
+- ✅ Bcrypt password hashing
+- ✅ 60-minute session timeout
+- ✅ Automatic token verification
+- ✅ Secure logout functionality
+- ✅ Protected API endpoints
+
+### Default Credentials
+- **Username**: `fieldrobotics`
+- **Password**: `FieldRobotics2025!GCS`
+
+### Quick Start
+1. Start the backend and frontend (see installation steps)
+2. Navigate to `http://localhost:5173`
+3. Login with the credentials above
+4. Logout button is in the sidebar
+
+### Documentation
+- 📖 [Complete Authentication Guide](docs/AUTHENTICATION.md)
+- 🚀 [Quick Setup Instructions](docs/QUICK_SETUP_AUTH.md)
+- 📋 [Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)
+- ✅ [Production Checklist](docs/PRODUCTION_CHECKLIST.md)
+
+### Security Notes
+⚠️ **Before production deployment:**
+1. Generate new `SECRET_KEY`: `openssl rand -hex 32`
+2. Change default password to a strong one
+3. Enable HTTPS
+4. Configure CORS for production domain
+5. Review the [Production Checklist](docs/PRODUCTION_CHECKLIST.md)
+

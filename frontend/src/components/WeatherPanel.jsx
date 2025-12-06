@@ -1,276 +1,250 @@
 import { useState, useEffect } from "react";
-import {
-  ThermometerSun,
-  Droplets,
-  Wind,
-  Gauge,
-  ChevronDown,
-  ChevronUp,
+import { 
+  Thermometer, 
+  Wind, 
+  CloudDrizzle, 
+  CloudSun,
+  HardDrive, // Icona Storage
+  Zap,       // Icona Batteria Backup
+  Cpu,       // Icona CPU/Sistema
+  X
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
 } from "recharts";
 import "../styles/WeatherPanel.css";
 
-export default function WeatherPanel({ hangar, drone }) {
-  const [expanded, setExpanded] = useState(false);
+export default function WeatherPanel({ drone, onClose }) {
+  
+  // ==========================================
+  // 1. ESTRAZIONE DATI DAL JSON
+  // ==========================================
+  const dockData = drone?.dock?.[0]?.value || {};
+  
+  // --- DATI METEO ---
+  const currentTemp = parseFloat(dockData.dock_temperature || 0);
+  const currentWind = parseFloat(dockData.wind_speed || 0);
+  const currentHum = parseFloat(dockData.humidity || 0);
+
+  // --- DATI SALUTE DOCK (Health) ---
+  // Storage
+  const storageUsed = parseFloat(dockData.storage_used_mb || 0);
+  const storageTotal = parseFloat(dockData.storage_total_mb || 1); // Evita div/0
+  // Calcolo percentuale (clamp a 100%)
+  const storagePercent = Math.min((storageUsed / storageTotal) * 100, 100);
+
+  // Backup Battery (UPS) - arriva in mV, convertiamo in V
+  const backupBatVolts = (parseFloat(dockData.backup_battery_voltage || 0) / 1000).toFixed(1);
+  const backupBatTemp = dockData.backup_battery_temp || "N/A";
+  
+  // Dock Mode (es. "remote_debugging" -> "REMOTE DEBUGGING")
+  const dockMode = dockData.dock_mode 
+    ? dockData.dock_mode.replace(/_/g, ' ').toUpperCase() 
+    : "N/A";
+
+
+  // ==========================================
+  // 2. LOGICA STORICO (Grafici)
+  // ==========================================
   const [history, setHistory] = useState([]);
 
-  // ====== ESTRAZIONE DATI ATTUALI ======
-
-  const dockFromDrone = drone?.dock?.[0]?.value;
-  const dockFromHangar = hangar?.dock?.[0]?.value;
-
-  // Priorità: dock dentro drone (ma puoi invertire se preferisci)
-  const dock = dockFromDrone || dockFromHangar || {};
-
-  const tempStr = dock?.dock_temperature ?? hangar?.ext_tmp?.[0]?.value;
-  const humidityStr = dock?.humidity ?? hangar?.ext_humidity?.[0]?.value;
-  const windSpeedStr = dock?.wind_speed ?? hangar?.wind?.[0]?.value;
-  const windGustStr = hangar?.wind_gust?.[0]?.value;
-  const pressure = hangar?.pressure?.[0]?.value ?? "-";
-  const rainfall = hangar?.rainfall?.[0]?.value ?? 0;
-
-  const temp = tempStr != null ? Number(tempStr) : null;
-  const humidity = humidityStr != null ? Number(humidityStr) : null;
-  const windSpeed = windSpeedStr != null ? Number(windSpeedStr) : null;
-  const windGust = windGustStr != null ? Number(windGustStr) : null;
-
-  // Timestamp (x axis)
-  const timestamp =
-    hangar?.timestamp?.[0]?.value ||
-    dock?.timestamp ||
-    new Date().toISOString();
-
-  // ====== COSTRUZIONE STATO METEO (icona / label) ======
-
-  let conditionIcon = "☀️";
-  let conditionLabel = "Sereno";
-
-  if (rainfall > 0) {
-    conditionIcon = "🌧";
-    conditionLabel = "Pioggia";
-  } else if (humidity > 80) {
-    conditionIcon = "🌫";
-    conditionLabel = "Umido";
-  } else if (windSpeed > 8 || windGust > 10) {
-    conditionIcon = "💨";
-    conditionLabel = "Vento forte";
-  } else if (humidity > 60) {
-    conditionIcon = "⛅";
-    conditionLabel = "Variabile";
-  }
-
-  // Semaforo vento (safety)
-  let windLevel = "ok";
-  if (windSpeed != null) {
-    if (windSpeed > 10) windLevel = "danger";
-    else if (windSpeed > 5) windLevel = "warn";
-  }
-
-  // ====== STORICO PER GRAFICI ======
-  // Ogni volta che cambia "hangar" aggiungo un punto allo storico
-
   useEffect(() => {
-    if (!hangar) return;
-
-    const point = {
-      time: new Date(timestamp).toLocaleTimeString("it-IT", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-      temp: temp ?? null,
-      humidity: humidity ?? null,
-      wind: windSpeed ?? null,
-      windGust: windGust ?? null,
-      pressure: pressure ?? null,
+    const now = new Date().toLocaleTimeString('it-IT', { 
+        hour: '2-digit', minute: '2-digit', second: '2-digit' 
+    });
+    
+    const newDataPoint = {
+      time: now,
+      temp: currentTemp,
+      wind: currentWind,
+      hum: currentHum
     };
 
-    setHistory((prev) => {
-      const next = [...prev, point];
-      // mantieni ultimi 120 punti
-      return next.slice(-120);
+    setHistory(prev => {
+      // Mantieni ultimi 30 punti
+      const newHistory = [...prev, newDataPoint];
+      if (newHistory.length > 30) newHistory.shift(); 
+      return newHistory;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hangar]); // ogni nuovo pacchetto telemetria
+  }, [currentTemp, currentWind, currentHum]); 
 
   return (
-    <div
-      className={`weather-panel ${expanded ? "expanded" : "collapsed"}`}
-      onClick={() => setExpanded((prev) => !prev)}
-    >
-      {/* ===== HEADER COMPATTO (sempre visibile) ===== */}
-      <div className="weather-header">
-        <div className="weather-header-left">
-          <span className="weather-main-icon">{conditionIcon}</span>
-          <div className="weather-main-text">
-            <h4>Meteo Dock</h4>
-            <span className="weather-condition-label">{conditionLabel}</span>
+    <div className="weather-panel-container">
+
+      <div className="weather-content">
+        
+        {/* ================================= */}
+        {/* SEZIONE 1: METEO ATTUALE          */}
+        {/* ================================= */}
+        <div className="current-status-card">
+          
+          <div className="weather-hero">
+            <CloudSun size={42} color="#fff" strokeWidth={1.5} /> 
+            <div className="weather-hero-text">
+              <div className="weather-label-main">Dati Dock</div>
+              <div className="weather-sub-label">Rilevazione sensori locali</div>
+            </div>
+          </div>
+
+          <div className="metrics-grid-compact">
+            
+            {/* TEMPERATURA */}
+            <div className="metric-box theme-orange">
+              <div className="m-icon"><Thermometer size={18} /></div>
+              <div className="m-info">
+                <span className="m-label">TEMP. DOCK</span>
+                <span className="m-value">{currentTemp.toFixed(1)} <small>°C</small></span>
+              </div>
+            </div>
+
+            {/* VENTO */}
+            <div className="metric-box theme-blue">
+              <div className="m-icon"><Wind size={18} /></div>
+              <div className="m-info">
+                <span className="m-label">VENTO</span>
+                <span className="m-value">{currentWind.toFixed(1)} <small>m/s</small></span>
+              </div>
+            </div>
+
+            {/* UMIDITÀ */}
+            <div className="metric-box theme-green">
+              <div className="m-icon"><CloudDrizzle size={18} /></div>
+              <div className="m-info">
+                <span className="m-label">UMIDITÀ</span>
+                <span className="m-value">{currentHum.toFixed(0)} <small>%</small></span>
+              </div>
+            </div>
+
           </div>
         </div>
 
-        <div className="weather-header-right">
-          <div className="weather-temp-row">
-            <ThermometerSun size={16} />
-            <span>{temp != null ? `${temp.toFixed(1)}°C` : "N/A"}</span>
+        <div className="section-divider">STORICO METEO (Ultime 30 letture)</div>
+
+        {/* --- GRAFICO 1: TEMPERATURA --- */}
+        <div className="chart-card">
+          <div className="chart-header-row">
+             <div className="chart-title-icon theme-orange"><Thermometer size={14}/></div>
+             <span>Temperatura Dock (°C)</span>
           </div>
-          <div className="weather-wind-row">
-            <Wind size={16} />
-            <span>{windSpeed != null ? `${windSpeed.toFixed(1)} m/s` : "N/A"}</span>
-            <span className={`wind-pill wind-${windLevel}`} />
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="time" hide />
+                <YAxis domain={['auto', 'auto']} stroke="#666" fontSize={10} width={30} />
+                <Tooltip 
+                    contentStyle={{background:'#222', border:'1px solid #444', borderRadius:'4px'}} 
+                    itemStyle={{fontSize:'12px'}}
+                    labelStyle={{display:'none'}}
+                />
+                <Line type="monotone" dataKey="temp" stroke="#e67e22" strokeWidth={2} dot={false} activeDot={{r: 4}} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="weather-expand-icon">
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        {/* --- GRAFICO 2: VENTO --- */}
+        <div className="chart-card">
+          <div className="chart-header-row">
+             <div className="chart-title-icon theme-blue"><Wind size={14}/></div>
+             <span>Vento (m/s)</span>
+          </div>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="time" hide />
+                <YAxis domain={[0, 'auto']} stroke="#666" fontSize={10} width={30} />
+                <Tooltip 
+                    contentStyle={{background:'#222', border:'1px solid #444', borderRadius:'4px'}} 
+                    itemStyle={{fontSize:'12px'}}
+                    labelStyle={{display:'none'}}
+                />
+                <Line type="monotone" dataKey="wind" stroke="#3498db" strokeWidth={2} dot={false} activeDot={{r: 4}} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+
+        {/* --- GRAFICO 3: UMIDITÀ --- */}
+        <div className="chart-card">
+           <div className="chart-header-row">
+             <div className="chart-title-icon theme-green"><CloudDrizzle size={14}/></div>
+             <span>Umidità (%)</span>
+          </div>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                <XAxis dataKey="time" hide />
+                <YAxis domain={[0, 100]} stroke="#666" fontSize={10} width={30} />
+                <Tooltip 
+                    contentStyle={{background:'#222', border:'1px solid #444', borderRadius:'4px'}} 
+                    itemStyle={{fontSize:'12px'}}
+                    labelStyle={{display:'none'}}
+                />
+                <Line type="monotone" dataKey="hum" stroke="#2ecc71" strokeWidth={2} dot={false} activeDot={{r: 4}} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ================================= */}
+        {/* SEZIONE 2: DOCK HEALTH            */}
+        {/* ================================= */}
+        <div className="section-divider" style={{marginTop: '25px'}}>STATO SISTEMA DOCK</div>
+       
+        <div className="metrics-grid-compact">
+            
+            {/* 1. STORAGE */}
+            <div className="metric-box" style={{borderLeft: '2px solid #9b59b6'}}>
+                <div className="m-icon"><HardDrive size={18} color="#9b59b6" /></div>
+                <div className="m-info">
+                    <span className="m-label">STORAGE</span>
+                    <span className="m-value">{storagePercent.toFixed(2)} <small>%</small></span>
+                </div>
+                {/* Mini Barra Progresso */}
+                <div style={{width: '100%', height: '3px', background: '#333', marginTop: 'auto', borderRadius: '2px'}}>
+                    <div style={{width: `${storagePercent}%`, height: '100%', background: '#9b59b6', borderRadius: '2px'}}></div>
+                </div>
+            </div>
+
+            {/* 2. BACKUP BATT (UPS) */}
+            <div className="metric-box" style={{borderLeft: '2px solid #f1c40f'}}>
+                <div className="m-icon"><Zap size={18} color="#f1c40f" /></div>
+                <div className="m-info">
+                    <span className="m-label">UPS BATT</span>
+                    <span className="m-value">{backupBatVolts} <small>V</small></span>
+                </div>
+                <span style={{fontSize:'9px', color:'#888', marginTop:'2px'}}>Temp: {backupBatTemp}°C</span>
+            </div>
+
+            {/* 3. MODE / STATUS */}
+            <div className="metric-box" style={{borderLeft: '2px solid #fff'}}>
+                <div className="m-icon"><Cpu size={18} color="#fff" /></div>
+                <div className="m-info">
+                    <span className="m-label">DOCK MODE</span>
+                    <span className="m-value" style={{
+                        fontSize: '10px', 
+                        whiteSpace: 'nowrap', 
+                        overflow:'hidden', 
+                        textOverflow:'ellipsis',
+                        lineHeight: '1.4'
+                    }}>
+                        {dockMode}
+                    </span>
+                </div>
+            </div>
+
+        </div>
+
       </div>
-
-      {/* ===== RIGA COMPATTA VALORI RAPIDI ===== */}
-      <div className="weather-quick-row">
-        <div className="quick-item">
-          <Droplets size={14} />
-          <span>{humidity != null ? `${humidity.toFixed(0)}%` : "—"}</span>
-        </div>
-        <div className="quick-item">
-          <Gauge size={14} />
-          <span>{pressure ? `${pressure.toFixed?.(1) ?? pressure} hPa` : "—"}</span>
-        </div>
-        <div className="quick-item">
-          <span>Rain</span>
-          <span>{rainfall ? `${rainfall} mm` : "0 mm"}</span>
-        </div>
-      </div>
-
-      {/* ===== SEZIONE ESTESA CON GRAFICI ===== */}
-      {expanded && (
-        <div
-          className="weather-expanded"
-          onClick={(e) => e.stopPropagation()} // evita chiusura quando clicchi sui grafici
-        >
-          {/* TEMPERATURA */}
-          <div className="chart-block">
-            <div className="chart-title">📈 Temperatura (°C)</div>
-            <ResponsiveContainer width="100%" height={130}>
-              <LineChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  domain={["auto", "auto"]}
-                  allowDecimals={true}
-                />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="temp"
-                  stroke="#e67e22"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* VENTO & RAFFICHE */}
-          <div className="chart-block">
-            <div className="chart-title">💨 Vento & Raffiche (m/s)</div>
-            <ResponsiveContainer width="100%" height={130}>
-              <LineChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  domain={[0, "auto"]}
-                  allowDecimals={true}
-                />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="wind"
-                  name="Vento"
-                  stroke="#2980b9"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="windGust"
-                  name="Raffiche"
-                  stroke="#c0392b"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* UMIDITÀ */}
-          <div className="chart-block">
-            <div className="chart-title">💧 Umidità (%)</div>
-            <ResponsiveContainer width="100%" height={120}>
-              <LineChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  domain={[0, 100]}
-                  allowDecimals={false}
-                />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="humidity"
-                  stroke="#16a085"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* PRESSIONE */}
-          <div className="chart-block">
-            <div className="chart-title">🧭 Pressione (hPa)</div>
-            <ResponsiveContainer width="100%" height={120}>
-              <LineChart data={history}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-                <XAxis dataKey="time" tick={{ fontSize: 10 }} />
-                <YAxis
-                  tick={{ fontSize: 10 }}
-                  domain={["auto", "auto"]}
-                  allowDecimals={true}
-                />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="pressure"
-                  stroke="#7f8c8d"
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

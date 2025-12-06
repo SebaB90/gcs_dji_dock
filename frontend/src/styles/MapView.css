@@ -1,32 +1,27 @@
-/* =====================
-   MAP WRAPPER
-===================== */
+/* ================================================= */
+/* CONTENITORE MAPPA (Adattato per SplitView) */
+/* ================================================= */
 .map-wrapper {
-  flex: 1;
   position: relative;
-  height: 100vh;
-  width: 100%;
+  /* Width e Height al 100% per riempire il pannello della split view */
+  width: 100%; 
+  height: 100%;
   overflow: hidden;
-  background-color: #dcdcdc; /* fallback grigio chiaro */
+  background-color: #dcdcdc; /* Colore di caricamento */
+  z-index: 1;
+  /* Rimosse le vecchie transizioni di width/left che confliggono col drag */
 }
 
-/* =====================
-   LEAFLET CONTAINER FIX
-===================== */
+/* ================================================= */
+/* LEAFLET FIX & TOOLTIP */
+/* ================================================= */
 .leaflet-container {
-  position: absolute !important;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   width: 100% !important;
   height: 100% !important;
   z-index: 1;
+  font-family: 'Inter', sans-serif;
 }
 
-/* =====================
-   TOOLTIP (WP markers)
-===================== */
 .leaflet-tooltip {
   background-color: #333;
   color: #fff;
@@ -34,49 +29,82 @@
   border-radius: 6px;
   font-size: 12px;
   padding: 4px 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
+.leaflet-tooltip-top:before { border-top-color: #333; }
 
-/* =====================
-   CONTROLLI PERSONALIZZATI (basso dx)
-===================== */
+/* ================================================= */
+/* CONTROLLI MAPPA (Zoom & Recenter) - STILE PULITO */
+/* ================================================= */
+
 .custom-map-controls {
   position: absolute;
-  bottom: 18px;
-  right: 18px;
+  bottom: 20px;
+  right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  z-index: 9999;
+  gap: 10px; /* Spazio tra il gruppo Zoom e il bottone Recenter */
+  z-index: 1000; /* Sopra la mappa */
 }
 
+/* GRUPPO ZOOM (Contenitore dei tasti + e -) */
+.ctrl-group {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 4px; 
+    overflow: hidden; 
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); 
+}
+
+/* STILE BASE DEI PULSANTI */
 .ctrl-btn {
-  width: 34px;
-  height: 34px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #222;
+  width: 26px; 
+  height: 26px;
+  background: #ffffff; 
+  border: none; 
+  color: #1c1c1e; /* Colore scuro per le icone */
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 16px; 
+  font-weight: 600;
+  
+  /* Centratura perfetta dell'icona */
   display: flex;
   align-items: center;
   justify-content: center;
+  
+  padding: 0; 
+  margin: 0;
+  transition: background 0.1s ease;
+  border-radius: 4px;
 }
 
-.ctrl-btn:hover {
-  background: white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-  transform: translateY(-1px);
+/* Hover e Active */
+.ctrl-btn:hover { background: #f2f2f2; }
+.ctrl-btn:active { background: #e6e6e6; }
+
+/* Logica per i bordi nel gruppo Zoom */
+/* Rimuove il radius dai bottoni dentro il gruppo per farli uniti */
+.ctrl-group .ctrl-btn {
+    border-radius: 0; 
+    border-bottom: 1px solid #e0e0e0; /* Linea divisoria sottile */
 }
 
-.ctrl-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+/* Rimuove la linea dall'ultimo bottone del gruppo */
+.ctrl-group .ctrl-btn:last-child {
+    border-bottom: none; 
 }
 
+/* PULSANTE RICENTRAGGIO (Separato) */
 .ctrl-btn.recenter {
-  font-size: 16px;
+    font-size: 0 !important; /* Nasconde eventuale testo, lascia solo icona */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); 
 }
 
+/* Stile specifico per l'icona SVG dentro il bottone recenter */
+.ctrl-btn.recenter svg {
+    width: 18px;
+    height: 18px;
+    color: #1a4ccf; /* Blu DJI */
+}

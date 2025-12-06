@@ -6,7 +6,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import os
+import logging
+import signal
+import sys
 from dotenv import load_dotenv
 
 # ====================
@@ -16,6 +21,74 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(title="GCS Backend")
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Session with connection pooling for better performance
+def get_http_session():
+    """Create requests session with connection pooling and retries"""
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=3,
+        backoff_factor=0.3,
+        status_forcelist=[429, 500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(
+        max_retries=retry_strategy,
+        pool_connections=10,
+        pool_maxsize=20
+    )
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+# Global session for reuse
+http_session = get_http_session()
+
+# ====================
+# GRACEFUL SHUTDOWN
+# ====================
+
+def shutdown_handler(signum, frame):
+    """Handle shutdown signals gracefully"""
+    logger.info(f"Received signal {signum}, shutting down gracefully...")
+    
+    # Close HTTP session
+    if http_session:
+        http_session.close()
+        logger.info("HTTP session closed")
+    
+    # Clear token cache
+    _tb_token_cache["token"] = None
+    _tb_token_cache["expires_at"] = 0
+    logger.info("Token cache cleared")
+    
+    logger.info("Shutdown complete")
+    sys.exit(0)
+
+# Register signal handlers
+signal.signal(signal.SIGTERM, shutdown_handler)
+signal.signal(signal.SIGINT, shutdown_handler)
+
+@app.on_event("startup")
+async def startup_event():
+    """Log application startup"""
+    logger.info("GCS Backend starting up...")
+    logger.info("HTTP connection pooling initialized")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on application shutdown"""
+    logger.info("GCS Backend shutting down...")
+    if http_session:
+        http_session.close()
+        logger.info("HTTP session closed")
+
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -151,17 +224,33 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # ====================
 # UTILITY FUNZIONE TB TOKEN
 # ====================
+
+# Cache for ThingsBoard token to avoid re-authentication on every request
+_tb_token_cache = {"token": None, "expires_at": 0}
+
 def get_tb_token():
-    """Ottiene il token di autenticazione da ThingsBoard"""
+    """Ottiene il token di autenticazione da ThingsBoard (con caching)"""
+    # Check if cached token is still valid (cache for 50 minutes)
+    if _tb_token_cache["token"] and datetime.now().timestamp() < _tb_token_cache["expires_at"]:
+        return _tb_token_cache["token"]
+    
     try:
-        res = requests.post(
+        res = http_session.post(
             f"{BASE_URL}/api/auth/login",
             json={"username": USERNAME, "password": PASSWORD},
             timeout=10
         )
         res.raise_for_status()
-        return res.json()["token"]
+        token = res.json()["token"]
+        
+        # Cache token for 50 minutes
+        _tb_token_cache["token"] = token
+        _tb_token_cache["expires_at"] = datetime.now().timestamp() + (50 * 60)
+        
+        logger.info("ThingsBoard token refreshed")
+        return token
     except Exception as e:
+        logger.error(f"ThingsBoard authentication error: {e}")
         raise HTTPException(status_code=401, detail=f"Errore autenticazione TB: {e}")
 
 
@@ -171,7 +260,43 @@ def get_tb_token():
 @app.get("/")
 def root():
     """Verifica stato backend"""
-    return {"status": "ok", "service": "GCS Backend"}
+    return {"status": "ok", "service": "GCS Backend", "version": "1.0.0"}
+
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for monitoring and load balancers"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0",
+        "uptime": "running"
+    }
+
+
+@app.get("/ready")
+def readiness_check():
+    """Readiness check - verifies all dependencies are accessible"""
+    checks = {
+        "database": "ok",  # Future: add database check
+        "thingsboard": "checking"
+    }
+    
+    # Quick check if ThingsBoard is accessible
+    try:
+        test_token = get_tb_token()
+        checks["thingsboard"] = "ok" if test_token else "error"
+    except:
+        checks["thingsboard"] = "error"
+    
+    all_ok = all(v == "ok" for v in checks.values())
+    status_code = 200 if all_ok else 503
+    
+    return {
+        "status": "ready" if all_ok else "not_ready",
+        "checks": checks,
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 
 # ====================
@@ -183,8 +308,11 @@ async def login(login_data: LoginRequest):
     """
     Authenticate user and return JWT access token
     """
+    logger.info(f"Login attempt for user: {login_data.username}")
+    
     user = authenticate_user(login_data.username, login_data.password)
     if not user:
+        logger.warning(f"Failed login attempt for user: {login_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -197,6 +325,7 @@ async def login(login_data: LoginRequest):
         expires_delta=access_token_expires
     )
     
+    logger.info(f"User {login_data.username} logged in successfully")
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -230,27 +359,39 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
 # ====================
 @app.get("/telemetry")
 def get_telemetry(current_user: dict = Depends(get_current_user)):
-    """Restituisce telemetria drone + hangar (protected endpoint)"""
-    token = get_tb_token()
-    headers = {"X-Authorization": f"Bearer {token}"}
-
+    """Restituisce telemetria drone + hangar (protected endpoint) - Optimized with connection pooling"""
     try:
-        drone = requests.get(
+        token = get_tb_token()
+        headers = {"X-Authorization": f"Bearer {token}"}
+
+        # Use session for connection pooling (much faster)
+        drone_response = http_session.get(
             f"{BASE_URL}/api/plugins/telemetry/DEVICE/{DRONE_ID}/values/timeseries?useStrictDataTypes=true",
             headers=headers,
-            timeout=2
-        ).json()
+            timeout=3
+        )
+        drone_response.raise_for_status()
+        drone = drone_response.json()
 
-        hangar = requests.get(
+        hangar_response = http_session.get(
             f"{BASE_URL}/api/plugins/telemetry/DEVICE/{HANGAR_ID}/values/timeseries?useStrictDataTypes=true",
             headers=headers,
-            timeout=2
-        ).json()
+            timeout=3
+        )
+        hangar_response.raise_for_status()
+        hangar = hangar_response.json()
 
         return {"drone": drone, "hangar": hangar}
 
+    except requests.exceptions.Timeout:
+        logger.error("ThingsBoard API timeout")
+        raise HTTPException(status_code=504, detail="ThingsBoard API timeout")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"ThingsBoard API error: {e}")
+        raise HTTPException(status_code=502, detail=f"ThingsBoard API error: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Errore nel recupero telemetria: {e}")
+        logger.error(f"Unexpected telemetry error: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore nel recupero telemetria: {str(e)}")
 
 
 # ====================

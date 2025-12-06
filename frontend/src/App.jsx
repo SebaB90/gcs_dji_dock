@@ -176,7 +176,7 @@ export default function App() {
           handleLogout();
         }
       }
-    }, 1000); // Rallentato a 1s per performance dev, rimetti a 300 in prod
+    }, 500); // 500ms = 2 updates per second (optimized for real-time)
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 

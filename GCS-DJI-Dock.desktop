@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=GCS DJI Dock
+Comment=Ground Control Station for DJI Dock 2
+Exec=/home/sebab/0_dev/gcs_dji_dock/launch.sh
+Icon=/home/sebab/0_dev/gcs_dji_dock/frontend/public/appLogo.png
+Terminal=false
+Categories=Development;Engineering;
+StartupNotify=true
+Keywords=drone;GCS;DJI;control;

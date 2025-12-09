@@ -233,3 +233,604 @@
 .leaflet-control-attribution {
   display: none !important;
 }
+/* ===================================
+   ENHANCED MISSION MANAGER STYLES
+   =================================== */
+
+/* Mission Parameters Section */
+.mission-params {
+  margin-bottom: 15px;
+}
+
+.mission-params input[type="text"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  background: #333;
+  color: #fff;
+}
+
+.params-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+/* Save Button */
+.mission-btn-save {
+  background: #8e44ad; /* Purple for save */
+  grid-column: span 2;
+}
+
+.mission-btn-save:disabled,
+.mission-btn-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Mission Library Styles */
+.mission-library {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.no-missions {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 30px 15px;
+}
+
+.mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.mission-card {
+  background: #252525;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.mission-card:hover {
+  border-color: #1a4ccf;
+  box-shadow: 0 4px 8px rgba(26, 76, 207, 0.2);
+}
+
+.mission-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.mission-card-header h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.mission-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #444;
+  transform: scale(1.1);
+}
+
+.mission-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: #bbb;
+}
+
+.mission-card-info span {
+  background: #1f1f1f;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.mission-card-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mission-card-buttons button {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.btn-execute {
+  background: #27ae60;
+}
+
+.btn-schedule {
+  background: #f39c12;
+}
+
+.btn-history {
+  background: #3498db;
+  grid-column: span 2;
+}
+
+.mission-card-buttons button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Execution History Styles */
+.mission-history {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.no-executions {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 30px 15px;
+}
+
+.execution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.execution-item {
+  background: #252525;
+  border-left: 4px solid #555;
+  border-radius: 6px;
+  padding: 10px;
+  transition: all 0.2s ease;
+}
+
+.execution-item.status-completed {
+  border-left-color: #27ae60;
+}
+
+.execution-item.status-failed {
+  border-left-color: #e74c3c;
+}
+
+.execution-item.status-running {
+  border-left-color: #f39c12;
+}
+
+.execution-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.execution-header strong {
+  color: #fff;
+  font-size: 13px;
+}
+
+.status-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.completed {
+  background: #27ae60;
+  color: white;
+}
+
+.status-badge.failed {
+  background: #e74c3c;
+  color: white;
+}
+
+.status-badge.running {
+  background: #f39c12;
+  color: white;
+}
+
+.execution-details {
+  font-size: 11px;
+  color: #bbb;
+}
+
+.execution-details > div {
+  margin: 3px 0;
+}
+
+.error-msg {
+  color: #e74c3c;
+  font-style: italic;
+  margin-top: 5px;
+}
+
+/* ==================== SCHEDULES TAB ==================== */
+.mission-schedules {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.no-schedules {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 30px 15px;
+}
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.schedule-card {
+  background: #252525;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.schedule-card.disabled {
+  opacity: 0.5;
+  border-color: #333;
+}
+
+.schedule-card:hover {
+  border-color: #666;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.schedule-header h5 {
+  margin: 0;
+  font-size: 14px;
+  color: #fff;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-toggle {
+  padding: 4px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #333;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle.enabled {
+  background: #27ae60;
+  border-color: #27ae60;
+  color: white;
+}
+
+.btn-toggle.disabled {
+  background: #555;
+  border-color: #555;
+  color: #999;
+}
+
+.btn-toggle:hover {
+  opacity: 0.8;
+}
+
+.schedule-info {
+  font-size: 12px;
+  color: #bbb;
+}
+
+.schedule-info > div {
+  margin: 5px 0;
+  padding: 4px 0;
+}
+
+.schedule-meta {
+  font-size: 11px;
+  color: #777;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a2a;
+}
+
+/* Schedule Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  margin: 0;
+  padding: 0;
+}
+
+.modal-content {
+  background: #1f1f1f;
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  position: relative;
+}
+
+.modal-content h3 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.schedule-type-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.schedule-type-selector button {
+  padding: 10px 8px;
+  border: 2px solid #444;
+  background: #252525;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ccc;
+  transition: all 0.2s ease;
+}
+
+.schedule-type-selector button.active {
+  border-color: #1a4ccf;
+  background: #1a4ccf;
+  color: white;
+}
+
+.schedule-type-selector button:hover:not(.active) {
+  background: #333;
+}
+
+.schedule-info {
+  padding: 15px;
+  background: #252525;
+  border-radius: 6px;
+  text-align: center;
+  color: #bbb;
+  font-size: 13px;
+  margin: 15px 0;
+}
+
+.schedule-once label,
+.schedule-recurring label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ccc;
+  margin: 12px 0 6px 0;
+  text-transform: uppercase;
+}
+
+.schedule-once input[type="datetime-local"],
+.schedule-recurring select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.days-selector {
+  margin: 15px 0;
+}
+
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.days-grid button {
+  padding: 8px 4px;
+  border: 1px solid #555;
+  background: #252525;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ccc;
+  transition: all 0.2s ease;
+}
+
+.days-grid button.active {
+  background: #1a4ccf;
+  border-color: #1a4ccf;
+  color: white;
+}
+
+.days-grid button:hover:not(.active) {
+  background: #333;
+}
+
+.time-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.time-input-group input[type="time"] {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #333;
+  color: #fff;
+  font-size: 13px;
+}
+
+.time-input-group button {
+  padding: 8px 12px;
+  border: none;
+  background: #e74c3c;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.time-input-group button:hover {
+  background: #c0392b;
+}
+
+.btn-add-time {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed #555;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #1a4ccf;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 5px;
+  transition: all 0.2s ease;
+}
+
+.btn-add-time:hover {
+  background: #252525;
+  border-color: #1a4ccf;
+}
+
+.modal-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-buttons button {
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  background: #555;
+  color: #fff;
+}
+
+.btn-cancel:hover {
+  background: #666;
+}
+
+.btn-confirm {
+  background: #1a4ccf;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #1559d8;
+}
+
+/* Scrollbar styles for library and history */
+.mission-library::-webkit-scrollbar,
+.mission-history::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mission-library::-webkit-scrollbar-thumb,
+.mission-history::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.mission-library::-webkit-scrollbar-track,
+.mission-history::-webkit-scrollbar-track,
+.modal-content::-webkit-scrollbar-track {
+  background: #252525;
+}

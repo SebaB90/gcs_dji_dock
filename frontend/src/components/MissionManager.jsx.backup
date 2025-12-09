@@ -1,0 +1,306 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+import MiniMap from "./MiniMap";
+import "../styles/MissionManager.css";
+
+export default function MissionManager({
+  waypoints,
+  setWaypoints,
+  dronePos,
+  dockPos,
+  backendUrl,
+}) {
+  const [altitude, setAltitude] = useState(25);
+  const [activeTab, setActiveTab] = useState("create");
+  
+  // Mission parameters
+  const [missionName, setMissionName] = useState("");
+  const [missionSpeed, setMissionSpeed] = useState(1.5);
+  const [missionRTH, setMissionRTH] = useState(true);
+  const [missionPhoto, setMissionPhoto] = useState(true);
+
+  // Mission parameters
+  const [missionName, setMissionName] = useState("");
+  const [missionSpeed, setMissionSpeed] = useState(1.5);
+  const [missionRTH, setMissionRTH] = useState(true);
+  const [missionPhoto, setMissionPhoto] = useState(true);
+
+  // Saved missions
+  const [missions, setMissions] = useState([]);
+  const [selectedMission, setSelectedMission] = useState(null);
+  const [editingMission, setEditingMission] = useState(null);
+  
+  // Scheduling
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleType, setScheduleType] = useState("immediate");
+  const [scheduleDateTime, setScheduleDateTime] = useState("");
+  const [recurrencePattern, setRecurrencePattern] = useState("daily");
+  const [recurrenceTimes, setRecurrenceTimes] = useState(["08:00"]);
+  const [recurrenceDays, setRecurrenceDays] = useState(["Mon", "Wed", "Fri"]);
+  
+  // Execution history
+  const [executions, setExecutions] = useState([]);
+  const [showExecutions, setShowExecutions] = useState(false);
+
+  // Load saved missions on component mount
+  useEffect(() => {
+    loadMissions();
+  }, [backendUrl]);
+
+  const loadMissions = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${backendUrl}/api/missions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data.status === "success") {
+        setMissions(res.data.missions);
+      }
+    } catch (err) {
+      console.warn("⚠️ Could not load missions:", err);
+    }
+  };
+
+  const loadExecutionHistory = async (missionId = null) => {
+    try {
+      const token = localStorage.getItem("token");
+      const url = missionId 
+        ? `${backendUrl}/api/executions?mission_id=${missionId}`
+        : `${backendUrl}/api/executions`;
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data.status === "success") {
+        setExecutions(res.data.executions);
+        setShowExecutions(true);
+      }
+    } catch (err) {
+      console.error("❌ Error loading execution history:", err);
+    }
+  };
+
+  const addWaypoint = (e) => {
+    e.stopPropagation();
+    const currentAlt = Number(altitude);
+    
+    const base =
+      waypoints.length > 0
+        ? waypoints[waypoints.length - 1]
+        : (dronePos && { lat: dronePos[0], lon: dronePos[1], alt: currentAlt }) ||
+          (dockPos && { lat: dockPos[0], lon: dockPos[1], alt: currentAlt }) ||
+          { lat: 44.5721, lon: 11.2514, alt: currentAlt };
+
+    const delta = waypoints.length * 0.00005;
+    const newWp = {
+      lat: base.lat + delta,
+      lon: base.lon + delta,
+      alt: currentAlt,
+    };
+    setWaypoints((prev) => [...prev, newWp]);
+  };
+
+  const removeLast = (e) => {
+    e.stopPropagation();
+    if (waypoints.length > 0) setWaypoints(waypoints.slice(0, -1));
+  };
+
+  const clearAll = (e) => {
+    e.stopPropagation();
+    setWaypoints([]);
+  };
+
+  // 🚀 FIXATO: aggiunti nadir e photo_time
+  const sendMission = async (e) => {
+    e.stopPropagation();
+    if (waypoints.length === 0) {
+      alert("⚠️ Aggiungi almeno un waypoint prima di inviare la missione.");
+      return;
+    }
+
+    try {
+      const mission = {
+        UAVCMD: {
+          command: "MISSION_LOAD",
+          parameters: {
+            speed: 1,
+            nadir: false,
+            rth: true,
+            photo: true,
+            photo_time: 0,
+            points: waypoints.map((wp) => ({
+              lat: wp.lat,
+              lon: wp.lon,
+              alt: wp.alt,
+            })),
+          },
+        },
+      };
+
+      const res = await axios.post(`${backendUrl}/mission`, mission);
+      if (res.data.status === "ok") alert("✅ Missione caricata correttamente!");
+      else alert("⚠️ Errore nell'invio missione");
+    } catch (err) {
+      console.error("❌ Errore invio missione:", err);
+      alert("❌ Errore invio missione");
+    }
+  };
+
+  const handleSelectMission = (id) => {
+    const m = missions.find((m) => m.id === id);
+    setSelectedMission(m || null);
+
+    if (m && m.points && m.points.length > 0) {
+      setWaypoints(m.points);
+    } else {
+      setWaypoints([]);
+    }
+  };
+
+  // 🚀 FIXATO anche qui: aggiunti nadir + photo_time
+  const loadMission = async () => {
+    if (!selectedMission) return;
+
+    try {
+      const mission = {
+        UAVCMD: {
+          command: "MISSION_LOAD",
+          parameters: {
+            speed: selectedMission.speed || 1,
+            nadir: selectedMission.nadir ?? false,
+            rth: selectedMission.rth ?? true,
+            photo: selectedMission.photo ?? true,
+            photo_time: selectedMission.photo_time ?? 0,
+            points: selectedMission.points,
+          },
+        },
+      };
+
+      const res = await axios.post(`${backendUrl}/mission`, mission);
+      if (res.data.status === "ok") alert("✅ Missione inviata correttamente!");
+      else alert("⚠️ Errore invio missione");
+    } catch (err) {
+      console.error("❌ Errore caricamento missione:", err);
+    }
+  };
+
+  const handleInputClick = (e) => e.stopPropagation();
+
+  return (
+    <div className="mission-manager-content" onClick={handleInputClick}>
+        <div className="mission-tabs">
+            <button
+                className={activeTab === "create" ? "active" : ""}
+                onClick={() => setActiveTab("create")}
+            >
+                ✏️ Crea
+            </button>
+            <button
+                className={activeTab === "load" ? "active" : ""}
+                onClick={() => setActiveTab("load")}
+            >
+                📂 Carica
+            </button>
+        </div>
+
+        {activeTab === "create" && (
+            <div className="mission-create">
+                <label htmlFor="alt-input">Altitudine di default (m):</label>
+                <input
+                    id="alt-input"
+                    type="number"
+                    min="1"
+                    max="200"
+                    step="1"
+                    value={altitude}
+                    onChange={(e) => setAltitude(Number(e.target.value))}
+                />
+
+                <div className="wp-list">
+                    <label>Waypoint ({waypoints.length}):</label>
+                    {waypoints.length === 0 ? (
+                    <p className="no-wp">Nessun waypoint definito. Aggiungine uno usando il bottone o cliccando sulla mappa.</p>
+                    ) : (
+                    waypoints.map((wp, i) => (
+                        <div key={i} className="wp-item">
+                        <strong>WP{i + 1}</strong>
+                        <span>
+                            {wp.lat.toFixed(5)}, {wp.lon.toFixed(5)}
+                        </span>
+                        <input
+                            type="number"
+                            min="1"
+                            max="200"
+                            value={wp.alt}
+                            onClick={handleInputClick}
+                            onChange={(e) => {
+                            const newAlt = Number(e.target.value);
+                            const updated = [...waypoints];
+                            updated[i].alt = newAlt;
+                            setWaypoints(updated);
+                            }}
+                        />
+                        </div>
+                    ))
+                    )}
+                </div>
+
+                <div className="mission-buttons">
+                    <button className="mission-btn-primary" onClick={addWaypoint}>
+                    ➕ Aggiungi
+                    </button>
+                    <button className="mission-btn-secondary" onClick={removeLast}>
+                    ➖ Rimuovi Ultimo
+                    </button>
+                    <button className="mission-btn-danger" onClick={clearAll}>
+                    🗑️ Reset Mappa
+                    </button>
+                    <button className="mission-btn-send" onClick={sendMission}>
+                    🚀 Invia Missione ({waypoints.length} WP)
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {activeTab === "load" && (
+            <div className="mission-load">
+                <label htmlFor="mission-select">Missioni salvate:</label>
+                <select
+                    id="mission-select"
+                    onChange={(e) => handleSelectMission(e.target.value)}
+                    value={selectedMission?.id || ""}
+                >
+                    <option value="">-- Seleziona Missione --</option>
+                    {missions.map((m) => (
+                    <option key={m.id} value={m.id}>
+                        {m.name}
+                    </option>
+                    ))}
+                </select>
+
+                {selectedMission && (
+                    <>
+                    <p>
+                        **Missione Selezionata:** {selectedMission.name}
+                    </p>
+                    <p style={{fontSize: "12px", color: "#999", marginBottom: "8px"}}>
+                        WP: {selectedMission.points.length} | Vel. {selectedMission.speed || 1} m/s
+                    </p>
+
+                    <div className="mini-map-container">
+                        <MiniMap waypoints={selectedMission.points} />
+                    </div>
+
+                    <button
+                        className="mission-btn-send"
+                        onClick={loadMission}
+                        disabled={!selectedMission || selectedMission.points.length === 0}
+                    >
+                        🚀 Carica nel Drone
+                    </button>
+                    </>
+                )}
+            </div>
+        )}
+    </div>
+  );
+}

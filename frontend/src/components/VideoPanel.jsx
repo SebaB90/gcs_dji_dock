@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { 
     LayoutGrid, 
     Monitor, 
@@ -12,12 +13,14 @@ import {
 } from "lucide-react"; 
 import "../styles/VideoPanel.css";
 
+const backendUrl = "http://localhost:8000";
+
 // === COMPONENTE FRAME VIDEO ===
 // Accetta 'headerContent' per inserire pulsanti custom (es. switch termica) nell'intestazione
-const StreamFrame = ({ title, type, irMode, headerContent }) => {
+const StreamFrame = ({ title, type, activeSource, headerContent }) => {
     
     // URL STREAM (Punta al tuo MediaMTX locale)
-    const streamUrl = type === 'drone' ? "http://localhost:8889/drone" : null; 
+    const streamUrl = type === 'drone' ? "http://localhost:8888/drone" : null; 
 
     return (
         <div className="stream-frame">
@@ -60,7 +63,13 @@ const StreamFrame = ({ title, type, irMode, headerContent }) => {
                 {/* Overlay Info in basso (solo testo) */}
                 <div className="stream-overlay-info">
                     {type === 'drone' && <div>CAM: H20T</div>}
-                    <div>{type === 'drone' && irMode ? "THERMAL" : "VISUAL"}</div>
+                    {type === 'drone' && (
+                        <div>
+                            {activeSource === 'thermal' ? 'THERMAL' : 
+                             activeSource === 'zoom' ? 'ZOOM' : 
+                             'WIDE'}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -120,6 +129,7 @@ const VisualMetric = ({ label, value, unit, icon: Icon, max = 100, type = "text"
 // === COMPONENTE PRINCIPALE ===
 export default function VideoPanel({ dronePos, drone }) {
     const [irMode, setIrMode] = useState(false);
+    const [activeSource, setActiveSource] = useState("wide"); // Track active video source
     
     // Gestione Layout (Quali stream mostrare)
     const [visibleStreams, setVisibleStreams] = useState({
@@ -131,6 +141,59 @@ export default function VideoPanel({ dronePos, drone }) {
         setVisibleStreams(prev => ({ ...prev, [streamKey]: !prev[streamKey] }));
     };
 
+    // Function to switch video source via API
+    const switchVideoSource = async (sourceName) => {
+        try {
+            const token = localStorage.getItem("gcs_token");
+            if (!token) {
+                console.error("No authentication token found");
+                return;
+            }
+
+            await axios.post(
+                `${backendUrl}/api/video/source/${sourceName}`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setActiveSource(sourceName);
+            console.log(`Video source switched to: ${sourceName}`);
+        } catch (error) {
+            console.error(`Error switching to ${sourceName}:`, error);
+        }
+    };
+
+    // Get current video source on mount
+    useEffect(() => {
+        const fetchCurrentSource = async () => {
+            try {
+                const token = localStorage.getItem("gcs_token");
+                if (!token) return;
+
+                const response = await axios.get(
+                    `${backendUrl}/api/video/source`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (response.data.source_name) {
+                    setActiveSource(response.data.source_name);
+                }
+            } catch (error) {
+                console.error("Error fetching current video source:", error);
+            }
+        };
+
+        fetchCurrentSource();
+    }, []);
+
     // Estrazione Dati Sicura dal JSON
     const altitude = parseFloat(drone?.alt?.[0]?.value ?? 0);
     const hSpeed = parseFloat(drone?.groundspeed?.[0]?.value ?? 0);
@@ -139,18 +202,24 @@ export default function VideoPanel({ dronePos, drone }) {
     const battery = parseFloat(drone?.battery_level?.[0]?.value ?? 0);
     const sats = parseInt(drone?.gps_num_satellites?.[0]?.value ?? 0);
 
-    // Costruzione del Toggle Termica per l'header
+    // Costruzione del Toggle Camera per l'header
     const DroneControls = (
         <div className="cam-toggle">
             <button 
-                className={`cam-toggle-btn ${!irMode ? 'active-vis' : ''}`} 
-                onClick={() => setIrMode(false)}
+                className={`cam-toggle-btn ${activeSource === 'wide' ? 'active-vis' : ''}`} 
+                onClick={() => switchVideoSource('wide')}
             >
-                VISUAL
+                WIDE
             </button>
             <button 
-                className={`cam-toggle-btn ${irMode ? 'active-ir' : ''}`} 
-                onClick={() => setIrMode(true)}
+                className={`cam-toggle-btn ${activeSource === 'zoom' ? 'active-vis' : ''}`} 
+                onClick={() => switchVideoSource('zoom')}
+            >
+                ZOOM
+            </button>
+            <button 
+                className={`cam-toggle-btn ${activeSource === 'thermal' ? 'active-ir' : ''}`} 
+                onClick={() => switchVideoSource('thermal')}
             >
                 THERMAL
             </button>
@@ -202,7 +271,7 @@ export default function VideoPanel({ dronePos, drone }) {
                         <StreamFrame 
                             title="M30T AIRCRAFT" 
                             type="drone" 
-                            irMode={irMode}
+                            activeSource={activeSource}
                             headerContent={DroneControls} // Passiamo il toggle qui
                         />
                     </div>

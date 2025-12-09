@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from typing import Optional, List
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -13,6 +14,11 @@ import logging
 import signal
 import sys
 from dotenv import load_dotenv
+
+# Import mission scheduling modules
+from app.mission_db import MissionDB
+from app.mission_scheduler import MissionScheduler
+from app.video_controller import get_video_controller, VIDEO_SOURCE_WIDE, VIDEO_SOURCE_ZOOM, VIDEO_SOURCE_THERMAL
 
 # ====================
 # CONFIGURAZIONE BASE
@@ -50,6 +56,10 @@ def get_http_session():
 # Global session for reuse
 http_session = get_http_session()
 
+# Initialize mission database and scheduler
+mission_db = None
+mission_scheduler = None
+
 # ====================
 # GRACEFUL SHUTDOWN
 # ====================
@@ -57,6 +67,12 @@ http_session = get_http_session()
 def shutdown_handler(signum, frame):
     """Handle shutdown signals gracefully"""
     logger.info(f"Received signal {signum}, shutting down gracefully...")
+    
+    # Stop mission scheduler
+    global mission_scheduler
+    if mission_scheduler:
+        mission_scheduler.stop()
+        logger.info("Mission scheduler stopped")
     
     # Close HTTP session
     if http_session:
@@ -77,14 +93,37 @@ signal.signal(signal.SIGINT, shutdown_handler)
 
 @app.on_event("startup")
 async def startup_event():
-    """Log application startup"""
+    """Log application startup and initialize mission scheduler"""
+    global mission_db, mission_scheduler
+    
     logger.info("GCS Backend starting up...")
     logger.info("HTTP connection pooling initialized")
+    
+    # Initialize mission database
+    db_path = os.getenv("MISSION_DB_PATH", "missions.db")
+    mission_db = MissionDB(db_path)
+    logger.info(f"Mission database initialized: {db_path}")
+    
+    # Initialize and start mission scheduler
+    tb_api_url = f"{BASE_URL}/api/plugins/telemetry/DEVICE/{HANGAR_ID}/attributes/SHARED_SCOPE"
+    mission_scheduler = MissionScheduler(
+        mission_db=mission_db,
+        tb_api_url=tb_api_url,
+        get_token_func=get_tb_token
+    )
+    logger.info("Mission scheduler initialized and started")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on application shutdown"""
+    global mission_scheduler
+    
     logger.info("GCS Backend shutting down...")
+    
+    if mission_scheduler:
+        mission_scheduler.stop()
+        logger.info("Mission scheduler stopped")
+    
     if http_session:
         http_session.close()
         logger.info("HTTP session closed")
@@ -114,6 +153,26 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: str | None = None
+
+# Mission models
+class WaypointModel(BaseModel):
+    lat: float
+    lon: float
+    alt: float
+
+class MissionModel(BaseModel):
+    name: str
+    waypoints: List[WaypointModel]
+    speed: Optional[float] = 1.0
+    rth: Optional[bool] = True
+    photo: Optional[bool] = False
+
+class MissionScheduleModel(BaseModel):
+    schedule_type: str  # "immediate", "once", "recurring"
+    start_time: Optional[str] = None  # ISO format for "once" and "recurring"
+    recurrence_pattern: Optional[str] = None  # "daily", "weekly"
+    recurrence_value: Optional[str] = None  # e.g., "Mon,Wed,Fri:08:00,16:00" for weekly or "08:00,16:00" for daily
+    enabled: Optional[bool] = True
 
 # CORS – Permetti l’accesso dal frontend
 app.add_middleware(
@@ -457,6 +516,431 @@ def get_missions(current_user: dict = Depends(get_current_user)):
     ]
 
     return missions
+
+
+# ====================
+# MISSION MANAGEMENT API
+# ====================
+
+@app.post("/api/missions")
+def create_mission(mission: MissionModel, current_user: dict = Depends(get_current_user)):
+    """Create a new mission and save it to the database"""
+    try:
+        # Convert waypoints to dict format
+        waypoints = [{"lat": wp.lat, "lon": wp.lon, "alt": wp.alt} for wp in mission.waypoints]
+        
+        mission_data = {
+            "name": mission.name,
+            "waypoints": waypoints,
+            "speed": mission.speed,
+            "rth": mission.rth,
+            "photo": mission.photo
+        }
+        
+        mission_id = mission_db.create_mission(
+            name=mission.name,
+            waypoints=waypoints,
+            speed=mission.speed,
+            rth=mission.rth,
+            photo=mission.photo
+        )
+        
+        logger.info(f"Mission created: {mission.name} (ID: {mission_id})")
+        return {
+            "status": "success",
+            "mission_id": mission_id,
+            "message": f"Mission '{mission.name}' created successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error creating mission: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating mission: {str(e)}")
+
+
+@app.get("/api/missions")
+def list_missions(current_user: dict = Depends(get_current_user)):
+    """List all saved missions"""
+    try:
+        missions = mission_db.get_all_missions()
+        return {
+            "status": "success",
+            "missions": missions
+        }
+    except Exception as e:
+        logger.error(f"Error listing missions: {e}")
+        raise HTTPException(status_code=500, detail=f"Error listing missions: {str(e)}")
+
+
+@app.get("/api/missions/{mission_id}")
+def get_mission_detail(mission_id: int, current_user: dict = Depends(get_current_user)):
+    """Get details of a specific mission"""
+    try:
+        mission = mission_db.get_mission(mission_id)
+        if not mission:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        
+        return {
+            "status": "success",
+            "mission": mission
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting mission {mission_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting mission: {str(e)}")
+
+
+@app.put("/api/missions/{mission_id}")
+def update_mission(
+    mission_id: int, 
+    mission: MissionModel, 
+    current_user: dict = Depends(get_current_user)
+):
+    """Update an existing mission"""
+    try:
+        # Check if mission exists
+        existing = mission_db.get_mission(mission_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        
+        # Convert waypoints
+        waypoints = [{"lat": wp.lat, "lon": wp.lon, "alt": wp.alt} for wp in mission.waypoints]
+        
+        mission_db.update_mission(
+            mission_id=mission_id,
+            name=mission.name,
+            waypoints=waypoints,
+            speed=mission.speed,
+            rth=mission.rth,
+            photo=mission.photo
+        )
+        
+        logger.info(f"Mission updated: {mission.name} (ID: {mission_id})")
+        return {
+            "status": "success",
+            "message": f"Mission '{mission.name}' updated successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating mission {mission_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating mission: {str(e)}")
+
+
+@app.delete("/api/missions/{mission_id}")
+def delete_mission(mission_id: int, current_user: dict = Depends(get_current_user)):
+    """Delete a mission"""
+    try:
+        # Check if mission exists
+        existing = mission_db.get_mission(mission_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        
+        mission_db.delete_mission(mission_id)
+        
+        logger.info(f"Mission deleted: ID {mission_id}")
+        return {
+            "status": "success",
+            "message": "Mission deleted successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting mission {mission_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting mission: {str(e)}")
+
+
+@app.post("/api/missions/{mission_id}/execute")
+def execute_mission_now(mission_id: int, current_user: dict = Depends(get_current_user)):
+    """Execute a mission immediately"""
+    try:
+        # Get mission details
+        mission = mission_db.get_mission(mission_id)
+        if not mission:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        
+        # Create immediate schedule
+        schedule_id = mission_db.create_schedule(
+            mission_id=mission_id,
+            schedule_type="immediate"
+        )
+        
+        # Add job to scheduler
+        mission_scheduler.add_immediate_mission(mission_id, schedule_id)
+        
+        logger.info(f"Mission {mission_id} scheduled for immediate execution")
+        return {
+            "status": "success",
+            "message": f"Mission '{mission['name']}' scheduled for immediate execution",
+            "schedule_id": schedule_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error executing mission {mission_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error executing mission: {str(e)}")
+
+
+@app.post("/api/missions/{mission_id}/schedules")
+def create_mission_schedule(
+    mission_id: int,
+    schedule: MissionScheduleModel,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a schedule for a mission (one-time or recurring)"""
+    try:
+        # Check if mission exists
+        mission = mission_db.get_mission(mission_id)
+        if not mission:
+            raise HTTPException(status_code=404, detail="Mission not found")
+        
+        # Validate schedule type
+        if schedule.schedule_type not in ["once", "recurring"]:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid schedule_type. Use 'once' or 'recurring'"
+            )
+        
+        # Create schedule in database
+        # Convert recurrence_pattern string to dict format for database
+        recurrence_pattern_dict = None
+        if schedule.schedule_type == "recurring" and schedule.recurrence_pattern and schedule.recurrence_value:
+            if schedule.recurrence_pattern == "daily":
+                # recurrence_value: "08:00,16:00"
+                times = schedule.recurrence_value.split(",")
+                recurrence_pattern_dict = {
+                    "pattern": "daily",
+                    "days": [0, 1, 2, 3, 4, 5, 6],  # All days (0=Sunday)
+                    "times": times
+                }
+            elif schedule.recurrence_pattern == "weekly":
+                # recurrence_value: "Mon,Wed,Fri:08:00,16:00"
+                parts = schedule.recurrence_value.split(":")
+                day_names = parts[0].split(",")
+                times = parts[1].split(",") if len(parts) > 1 else ["08:00"]
+                
+                # Convert day names to numbers (0=Sunday)
+                day_map = {"Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6}
+                days = [day_map.get(d, 0) for d in day_names]
+                
+                recurrence_pattern_dict = {
+                    "pattern": "weekly",
+                    "days": days,
+                    "times": times
+                }
+        
+        schedule_id = mission_db.create_schedule(
+            mission_id=mission_id,
+            schedule_type=schedule.schedule_type,
+            start_time=schedule.start_time,
+            recurrence_pattern=recurrence_pattern_dict
+        )
+        
+        # Add to scheduler
+        mission_scheduler.reload_schedules()
+        
+        logger.info(f"Schedule created for mission {mission_id}: {schedule.schedule_type}")
+        return {
+            "status": "success",
+            "schedule_id": schedule_id,
+            "message": f"Schedule created for mission '{mission['name']}'"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating schedule for mission {mission_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error creating schedule: {str(e)}")
+
+
+@app.get("/api/missions/{mission_id}/schedules")
+def get_mission_schedules(mission_id: int, current_user: dict = Depends(get_current_user)):
+    """Get all schedules for a specific mission"""
+    try:
+        schedules = mission_db.get_schedules_for_mission(mission_id)
+        return {
+            "status": "success",
+            "schedules": schedules
+        }
+    except Exception as e:
+        logger.error(f"Error getting schedules for mission {mission_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting schedules: {str(e)}")
+
+
+@app.get("/api/schedules")
+def get_all_schedules(current_user: dict = Depends(get_current_user)):
+    """Get all active schedules"""
+    try:
+        schedules = mission_db.get_enabled_schedules()
+        return {
+            "status": "success",
+            "schedules": schedules
+        }
+    except Exception as e:
+        logger.error(f"Error getting all schedules: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting schedules: {str(e)}")
+
+
+@app.patch("/api/schedules/{schedule_id}")
+def patch_schedule(
+    schedule_id: int,
+    update_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Partially update a schedule (e.g., toggle enabled status)"""
+    try:
+        mission_db.update_schedule(schedule_id=schedule_id, **update_data)
+        
+        # Reload scheduler
+        mission_scheduler.reload_schedules()
+        
+        logger.info(f"Schedule {schedule_id} updated")
+        return {
+            "status": "success",
+            "message": "Schedule updated successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error updating schedule {schedule_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating schedule: {str(e)}")
+
+
+@app.put("/api/schedules/{schedule_id}")
+def update_schedule(
+    schedule_id: int,
+    schedule: MissionScheduleModel,
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a mission schedule"""
+    try:
+        mission_db.update_schedule(
+            schedule_id=schedule_id,
+            schedule_type=schedule.schedule_type,
+            start_time=schedule.start_time,
+            recurrence_pattern=schedule.recurrence_pattern,
+            recurrence_value=schedule.recurrence_value,
+            enabled=schedule.enabled
+        )
+        
+        # Reload scheduler
+        mission_scheduler.reload_schedules()
+        
+        logger.info(f"Schedule {schedule_id} updated")
+        return {
+            "status": "success",
+            "message": "Schedule updated successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error updating schedule {schedule_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating schedule: {str(e)}")
+
+
+@app.delete("/api/schedules/{schedule_id}")
+def delete_schedule(schedule_id: int, current_user: dict = Depends(get_current_user)):
+    """Delete a mission schedule"""
+    try:
+        mission_db.delete_schedule(schedule_id)
+        
+        # Reload scheduler
+        mission_scheduler.reload_schedules()
+        
+        logger.info(f"Schedule {schedule_id} deleted")
+        return {
+            "status": "success",
+            "message": "Schedule deleted successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error deleting schedule {schedule_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting schedule: {str(e)}")
+
+
+@app.get("/api/executions")
+def get_executions(
+    mission_id: Optional[int] = None,
+    limit: Optional[int] = 50,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get mission execution history"""
+    try:
+        executions = mission_db.get_executions(mission_id=mission_id, limit=limit)
+        return {
+            "status": "success",
+            "executions": executions
+        }
+    except Exception as e:
+        logger.error(f"Error getting executions: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting executions: {str(e)}")
+
+
+# ==============================
+#  VIDEO SOURCE CONTROL
+# ==============================
+
+@app.get("/api/video/source")
+def get_video_source(current_user: dict = Depends(get_current_user)):
+    """Get current video source"""
+    try:
+        controller = get_video_controller()
+        source = controller.get_source()
+        
+        source_name = {
+            VIDEO_SOURCE_WIDE: "wide",
+            VIDEO_SOURCE_ZOOM: "zoom",
+            VIDEO_SOURCE_THERMAL: "thermal"
+        }.get(source, "unknown")
+        
+        return {
+            "status": "success",
+            "source_id": source,
+            "source_name": source_name
+        }
+    except Exception as e:
+        logger.error(f"Error getting video source: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting video source: {str(e)}")
+
+
+@app.post("/api/video/source/{source_name}")
+def set_video_source(source_name: str, current_user: dict = Depends(get_current_user)):
+    """
+    Set video source
+    
+    Args:
+        source_name: Video source name (wide, zoom, thermal)
+    """
+    try:
+        # Map source name to ID
+        source_map = {
+            "wide": VIDEO_SOURCE_WIDE,
+            "zoom": VIDEO_SOURCE_ZOOM,
+            "thermal": VIDEO_SOURCE_THERMAL
+        }
+        
+        source_id = source_map.get(source_name.lower())
+        if source_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid source name. Use: wide, zoom, or thermal"
+            )
+        
+        controller = get_video_controller()
+        success = controller.set_source(source_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to set video source"
+            )
+        
+        logger.info(f"Video source switched to: {source_name} ({source_id})")
+        return {
+            "status": "success",
+            "source_id": source_id,
+            "source_name": source_name,
+            "message": f"Video source switched to {source_name}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error setting video source: {e}")
+        raise HTTPException(status_code=500, detail=f"Error setting video source: {str(e)}")
 
 
 # ==============================

@@ -70,3 +70,10 @@ echo "🔐 Default Login:"
 echo "   Username: fieldrobotics"
 echo "   Password: FieldRobotics2025!GCS"
 echo ""
+
+# Open browser automatically if running from desktop icon
+if [ -n "$DISPLAY" ]; then
+    echo "🌐 Opening browser..."
+    sleep 2
+    xdg-open http://localhost:5173 &>/dev/null &
+fi

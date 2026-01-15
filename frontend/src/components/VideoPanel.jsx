@@ -13,14 +13,12 @@ import {
 } from "lucide-react"; 
 import "../styles/VideoPanel.css";
 
-const backendUrl = "http://localhost:8000";
-
 // === COMPONENTE FRAME VIDEO ===
 // Accetta 'headerContent' per inserire pulsanti custom (es. switch termica) nell'intestazione
 const StreamFrame = ({ title, type, activeSource, headerContent }) => {
     
     // URL STREAM (Punta al tuo MediaMTX locale)
-    const streamUrl = type === 'drone' ? "http://localhost:8888/drone" : null; 
+    const streamUrl = type === 'drone' ? "http://192.168.200.55:8888/drone" : null; // HARDCODATO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     return (
         <div className="stream-frame">
@@ -64,10 +62,10 @@ const StreamFrame = ({ title, type, activeSource, headerContent }) => {
                 <div className="stream-overlay-info">
                     {type === 'drone' && <div>CAM: H20T</div>}
                     {type === 'drone' && (
-                        <div>
-                            {activeSource === 'thermal' ? 'THERMAL' : 
-                             activeSource === 'zoom' ? 'ZOOM' : 
-                             'WIDE'}
+                        <div className={`source-indicator source-${activeSource}`}>
+                            ● {activeSource === 'thermal' ? 'THERMAL' : 
+                               activeSource === 'zoom' ? 'ZOOM' : 
+                               'WIDE'}
                         </div>
                     )}
                 </div>
@@ -127,9 +125,10 @@ const VisualMetric = ({ label, value, unit, icon: Icon, max = 100, type = "text"
 };
 
 // === COMPONENTE PRINCIPALE ===
-export default function VideoPanel({ dronePos, drone }) {
+export default function VideoPanel({ dronePos, drone, backendUrl }) {
     const [irMode, setIrMode] = useState(false);
     const [activeSource, setActiveSource] = useState("wide"); // Track active video source
+    const [switchingSource, setSwitchingSource] = useState(false); // Track switching state
     
     // Gestione Layout (Quali stream mostrare)
     const [visibleStreams, setVisibleStreams] = useState({
@@ -143,14 +142,21 @@ export default function VideoPanel({ dronePos, drone }) {
 
     // Function to switch video source via API
     const switchVideoSource = async (sourceName) => {
+        // Prevent multiple simultaneous switches
+        if (switchingSource) return;
+        
+        setSwitchingSource(true);
+        
         try {
             const token = localStorage.getItem("gcs_token");
             if (!token) {
                 console.error("No authentication token found");
+                alert("Please login to switch camera sources");
+                setSwitchingSource(false);
                 return;
             }
 
-            await axios.post(
+            const response = await axios.post(
                 `${backendUrl}/api/video/source/${sourceName}`,
                 {},
                 {
@@ -161,13 +167,25 @@ export default function VideoPanel({ dronePos, drone }) {
             );
 
             setActiveSource(sourceName);
-            console.log(`Video source switched to: ${sourceName}`);
+            console.log(`✅ Video source switched to: ${sourceName}`, response.data);
         } catch (error) {
-            console.error(`Error switching to ${sourceName}:`, error);
+            console.error(`❌ Error switching to ${sourceName}:`, error);
+            
+            // Better error feedback for user
+            if (error.response?.status === 401) {
+                alert("Session expired. Please login again.");
+                // Optionally trigger logout/redirect to login
+            } else if (error.code === "ERR_NETWORK") {
+                alert(`Network error: Cannot reach backend at ${backendUrl}\nPlease check your connection.`);
+            } else {
+                alert(`Failed to switch camera to ${sourceName}. ${error.response?.data?.detail || error.message}`);
+            }
+        } finally {
+            setSwitchingSource(false);
         }
     };
 
-    // Get current video source on mount
+    // Get current video source on mount and periodically
     useEffect(() => {
         const fetchCurrentSource = async () => {
             try {
@@ -185,14 +203,22 @@ export default function VideoPanel({ dronePos, drone }) {
 
                 if (response.data.source_name) {
                     setActiveSource(response.data.source_name);
+                    console.log(`📹 Current video source: ${response.data.source_name}`);
                 }
             } catch (error) {
                 console.error("Error fetching current video source:", error);
             }
         };
 
+        // Fetch immediately on mount
         fetchCurrentSource();
-    }, []);
+        
+        // Poll every 5 seconds to keep UI in sync
+        const interval = setInterval(fetchCurrentSource, 5000);
+        
+        // Cleanup interval on unmount
+        return () => clearInterval(interval);
+    }, [backendUrl]);
 
     // Estrazione Dati Sicura dal JSON
     const altitude = parseFloat(drone?.alt?.[0]?.value ?? 0);
@@ -208,18 +234,24 @@ export default function VideoPanel({ dronePos, drone }) {
             <button 
                 className={`cam-toggle-btn ${activeSource === 'wide' ? 'active-vis' : ''}`} 
                 onClick={() => switchVideoSource('wide')}
+                disabled={switchingSource}
+                title="Wide camera view"
             >
                 WIDE
             </button>
             <button 
-                className={`cam-toggle-btn ${activeSource === 'zoom' ? 'active-vis' : ''}`} 
+                className={`cam-toggle-btn ${activeSource === 'zoom' ? 'active-zoom' : ''}`} 
                 onClick={() => switchVideoSource('zoom')}
+                disabled={switchingSource}
+                title="Zoom camera view"
             >
                 ZOOM
             </button>
             <button 
                 className={`cam-toggle-btn ${activeSource === 'thermal' ? 'active-ir' : ''}`} 
                 onClick={() => switchVideoSource('thermal')}
+                disabled={switchingSource}
+                title="Thermal camera view"
             >
                 THERMAL
             </button>

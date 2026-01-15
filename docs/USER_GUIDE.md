@@ -1,20 +1,22 @@
-# 🚁 Mission Planning & Scheduling Guide
+# 🚁 GCS DJI Dock - User Guide
 
-Complete guide to the advanced mission planning and scheduling system in the GCS DJI Dock Dashboard.
-
-## Overview
-
-The mission planner allows you to:
-- ✏️ **Create** missions with custom waypoints and parameters
-- 💾 **Save** missions to a library for future use
-- 📚 **Manage** a library of saved missions
-- ⏰ **Schedule** missions for immediate, one-time, or recurring execution
-- 📊 **Track** mission execution history
-- ✏️ **Edit** and update existing missions
+Complete guide for using the mission planning, scheduling, and monitoring features of the GCS DJI Dock Dashboard.
 
 ---
 
-## Mission Manager Interface
+## 📖 Table of Contents
+
+1. [Mission Manager Overview](#mission-manager-overview)
+2. [Creating Missions](#creating-missions)
+3. [Mission Library](#mission-library)
+4. [Scheduling Missions](#scheduling-missions)
+5. [Execution History](#execution-history)
+6. [Complete Workflow Examples](#complete-workflow-examples)
+7. [Tips & Best Practices](#tips--best-practices)
+
+---
+
+## Mission Manager Overview
 
 The Mission Manager has **three main tabs**:
 
@@ -22,17 +24,17 @@ The Mission Manager has **three main tabs**:
 2. **📚 Library** - View, manage, and execute saved missions
 3. **📊 History** - Track past mission executions
 
----
-
-## Creating a Mission
-
-### Step 1: Open the Mission Manager
+### Opening the Mission Manager
 
 1. Click on the **Mission** icon in the left sidebar
 2. The Mission Manager panel will expand
-3. Select the **✏️ Create** tab (default)
+3. Select the desired tab
 
-### Step 2: Set Mission Parameters
+---
+
+## Creating Missions
+
+### Step 1: Set Mission Parameters
 
 **Mission Name:**
 - Enter a descriptive name (e.g., "Daily Perimeter Check")
@@ -44,7 +46,7 @@ The Mission Manager has **three main tabs**:
 - **Return to Home**: Enable automatic return after mission completion
 - **Take Photos**: Enable automatic photo capture during flight
 
-### Step 3: Add Waypoints
+### Step 2: Add Waypoints
 
 **Three ways to add waypoints:**
 
@@ -58,7 +60,7 @@ The Mission Manager has **three main tabs**:
 - **➖ Remove Last** - Removes the last waypoint
 - **🗑️ Clear All** - Clears all waypoints
 
-### Step 4: Save or Send Mission
+### Step 3: Save or Send Mission
 
 **💾 Save Mission** (Purple button)
 - Saves mission to library for future use
@@ -103,7 +105,6 @@ The Mission Manager has **three main tabs**:
 **⏰ Schedule**
 - Opens scheduling modal
 - Set up one-time or recurring execution
-- See [Scheduling Missions](#scheduling-missions) below
 
 **📊 History**
 - Shows execution history for this specific mission
@@ -397,12 +398,6 @@ tail -f backend.log | grep -i "mission\|schedule"
 
 Missions stored in: `/home/sebab/0_dev/gcs_dji_dock/missions.db`
 
-### Tables
-
-- **missions** - Saved mission data
-- **mission_schedules** - Schedule configurations
-- **mission_executions** - Execution history
-
 ### Backup
 
 Regularly backup the database:
@@ -412,59 +407,10 @@ cp missions.db missions.backup.$(date +%Y%m%d).db
 
 ---
 
-## API Integration
-
-Missions can also be managed via REST API:
-
-**Endpoints:**
-- `GET /api/missions` - List all missions
-- `POST /api/missions` - Create mission
-- `POST /api/missions/{id}/execute` - Execute immediately
-- `POST /api/missions/{id}/schedules` - Create schedule
-- `GET /api/executions` - Get execution history
-
-See [MISSION_API.md](MISSION_API.md) for complete API documentation.
-
----
-
-## Advanced Features
-
-### Editing Schedules
-
-Currently, schedules can be created but not edited through UI. To modify:
-1. Delete mission's schedule
-2. Create new schedule with updated parameters
-
-**Planned:** Schedule editing UI in future update
-
-### Custom Recurrence Patterns
-
-Advanced patterns (monthly, custom cron) available via API:
-```json
-{
-  "recurrence_pattern": "monthly",
-  "recurrence_value": "1,15:09:00"
-}
-```
-
-This executes on 1st and 15th of each month at 9:00 AM.
-
----
-
 ## Keyboard Shortcuts
 
 - `Esc` - Close schedule modal
 - Click outside modal - Cancel scheduling
-
----
-
-## Support
-
-For issues or questions:
-1. Check backend logs: `tail -f backend.log`
-2. Check frontend logs: `tail -f frontend.log`
-3. Review [MISSION_API.md](MISSION_API.md) for API details
-4. Check [MISSION_SCHEDULING_SCHEMA.md](MISSION_SCHEDULING_SCHEMA.md) for database schema
 
 ---
 

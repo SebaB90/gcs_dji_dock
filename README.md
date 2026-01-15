@@ -19,10 +19,11 @@ cd frontend && npm install && cd ..
 
 ✨ **Fatto!** Apri http://localhost:5173
 
-🖥️  **Ancora più facile:** [Avvia con doppio click!](docs/DESKTOP_LAUNCHER.md) `./install_desktop_icons.sh`
+🌐 **Accesso da altri dispositivi:** [Guida Network Access](docs/NETWORK_GUIDE.md) | `./setup_network_access.sh`
 
-📚 [**Guida Completa →**](docs/QUICK_START.md) | 📊 **Check Status:** `./status.sh`
+📚 [**Guida Completa →**](docs/SETUP_GUIDE.md) | 📊 **Check Status:** `./status.sh`
 
+---
 
 ## 🚀 Funzionalità principali
 
@@ -97,188 +98,80 @@ cd ..
 
 ---
 
-### 🚀 3. Avvio rapido - TUTTO IN UNO
+## 🌐 Accesso da rete locale (altri dispositivi)
 
-**Il modo più semplice per avviare l'intera applicazione:**
+Per accedere alla dashboard da tablet, smartphone o altri computer sulla tua rete:
 
+**Setup automatico (consigliato):**
 ```bash
-# Avvia backend + frontend insieme
-./start_all.sh
+./setup_network_access.sh
+```
 
-# Ferma tutto
-./stop_all.sh
+Questo script:
+- ✅ Rileva automaticamente l'IP del server
+- ✅ Configura il frontend per l'accesso di rete
+- ✅ Apre le porte nel firewall
+- ✅ Fornisce le istruzioni di accesso
 
-# Riavvia tutto
+**Accesso manuale:**
+```bash
+# 1. Trova l'IP del tuo server
+hostname -I | awk '{print $1}'
+# Output esempio: 192.168.1.100
+
+# 2. Configura il frontend
+# Copia frontend/.env.local.example in frontend/.env.local
+# Modifica VITE_BACKEND_URL=http://192.168.1.100:8000
+
+# 3. Apri le porte del firewall
+sudo ufw allow 8000/tcp
+sudo ufw allow 5173/tcp
+
+# 4. Riavvia i servizi
 ./restart_all.sh
 ```
 
-Lo script `start_all.sh`:
-- ✅ Avvia il backend (porta 8000)
-- ✅ Verifica l'health check del backend
-- ✅ Avvia il frontend (porta 5173)
-- ✅ Mostra tutti i link e comandi utili
-- ✅ Gestisce automaticamente i log
-
-**Output dello script:**
+**Poi da altri dispositivi sulla stessa rete:**
 ```
-✨ All Services Started Successfully!
-
-🌐 Application URLs:
-   Frontend:  http://localhost:5173
-   Backend:   http://localhost:8000
-   API Docs:  http://localhost:8000/docs
-
-🔐 Default Login:
-   Username: fieldrobotics
-   Password: FieldRobotics2025!GCS
+http://192.168.1.100:5173
 ```
+
+📖 **Guida completa:** [docs/NETWORK_GUIDE.md](docs/NETWORK_GUIDE.md)
 
 ---
 
-### 🎯 4. Gestione servizi individuali
-
-Se preferisci controllare backend e frontend separatamente:
-
-**Backend:**
-```bash
-./start_backend.sh      # Avvia backend
-./stop_backend.sh       # Ferma backend
-./restart_backend.sh    # Riavvia backend
-```
-
-**Frontend:**
-```bash
-./start_frontend.sh     # Avvia frontend
-./stop_frontend.sh      # Ferma frontend
-./restart_frontend.sh   # Riavvia frontend
-```
-
-Tutti gli script includono:
-- ✅ Controllo porte occupate
-- ✅ Gestione PID file
-- ✅ Logging automatico
-- ✅ Health check
-- ✅ Shutdown graceful
-
----
-
-### 📊 5. Monitoraggio
-
-**Visualizza i log in tempo reale:**
-```bash
-# Backend
-tail -f backend.log
-
-# Frontend
-tail -f frontend.log
-
-# Entrambi contemporaneamente
-tail -f backend.log frontend.log
-```
-
-**Verifica stato servizi:**
-```bash
-# Health check backend
-curl http://localhost:8000/health
-
-# Verifica porte in uso
-lsof -i :8000    # Backend
-lsof -i :5173    # Frontend
-
-# Verifica processi
-cat backend.pid && ps -p $(cat backend.pid)
-cat frontend.pid && ps -p $(cat frontend.pid)
-```
-
----
-
-## 🚨 Troubleshooting
-
-### ❌ Errore "Address already in use" (porta occupata)
-
-**Soluzione rapida:**
-```bash
-# Ferma tutto e riavvia
-./restart_all.sh
-```
-
-**Soluzione dettagliata:**
-```bash
-# 1. Ferma i servizi esistenti
-./stop_all.sh
-
-# 2. Verifica che le porte siano libere
-lsof -i :8000    # Backend
-lsof -i :5173    # Frontend
-
-# 3. Se necessario, forza la pulizia
-lsof -ti:8000 | xargs kill -9
-lsof -ti:5173 | xargs kill -9
-
-# 4. Riavvia
-./start_all.sh
-```
-
----
-
-### 🔍 Un servizio non parte
-
-**Backend:**
-```bash
-# Controlla i log
-tail -50 backend.log
-
-# Verifica dipendenze
-.venv/bin/pip install -r backend/requirements.txt
-
-# Verifica configurazione
-cat backend/.env
-```
-
-**Frontend:**
-```bash
-# Controlla i log
-tail -50 frontend.log
-
-# Reinstalla dipendenze
-cd frontend && npm install && cd ..
-
-# Verifica configurazione
-cat frontend/.env
-```
-
----
-
-### 🌐 Frontend non si connette al backend
-
-**Verifica:**
-1. Backend in esecuzione: `curl http://localhost:8000/health`
-2. File `frontend/.env` contiene: `VITE_BACKEND_URL=http://localhost:8000`
-3. Riavvia frontend: `./restart_frontend.sh`
-
----
-
-### 📋 Script disponibili - Riferimento rapido
+## 📋 Script disponibili
 
 | Comando | Descrizione |
 |---------|-------------|
 | `./start_all.sh` | 🚀 Avvia backend + frontend |
 | `./stop_all.sh` | 🛑 Ferma tutto |
 | `./restart_all.sh` | 🔄 Riavvia tutto |
-| `./start_backend.sh` | Avvia solo backend |
-| `./stop_backend.sh` | Ferma solo backend |
-| `./restart_backend.sh` | Riavvia solo backend |
-| `./start_frontend.sh` | Avvia solo frontend |
-| `./stop_frontend.sh` | Ferma solo frontend |
-| `./restart_frontend.sh` | Riavvia solo frontend |
+| `./status.sh` | 📊 Controlla stato servizi |
+| `./setup_network_access.sh` | 🌐 Configura accesso di rete |
 
-**File di log e PID:**
+**File generati:**
 - `backend.log` - Log backend
 - `frontend.log` - Log frontend  
 - `backend.pid` - PID processo backend
 - `frontend.pid` - PID processo frontend
 
-Per maggiori dettagli: [Process Management Guide](docs/PROCESS_MANAGEMENT.md)
+Per maggiori dettagli: [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)
+
+---
+
+## 🚨 Troubleshooting
+
+### ❌ Errore "Address already in use" (porta occupata)
+```bash
+./restart_all.sh  # Soluzione rapida
+```
+
+### 🌐 Frontend non si connette al backend
+1. Verifica backend: `curl http://localhost:8000/health`
+2. Riavvia servizi: `./restart_all.sh`
+
+📖 **Guida completa:** [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)
 
 ---
 
@@ -412,13 +305,11 @@ The application now includes enterprise-grade JWT-based authentication for secur
 4. Logout button is in the sidebar
 
 ### Documentation
-- 🚀 **[Quick Start Guide](docs/QUICK_START.md)** ← **START HERE!**
-- 📖 [Complete Authentication Guide](docs/AUTHENTICATION.md)
-- 🔐 [Quick Setup Instructions](docs/QUICK_SETUP_AUTH.md)
-- 📋 [Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)
-- ✅ [Production Checklist](docs/PRODUCTION_CHECKLIST.md)
-- 🔄 [Process Management Guide](docs/PROCESS_MANAGEMENT.md)
-- ⚡ [Code Optimization Details](docs/CODE_OPTIMIZATION.md)
+- 🚀 **[Setup Guide](docs/SETUP_GUIDE.md)** - Complete installation & configuration
+- 📖 **[User Guide](docs/USER_GUIDE.md)** - Mission planning & scheduling
+- 🔌 **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
+- 🌐 **[Network Guide](docs/NETWORK_GUIDE.md)** - Multi-device access setup
+- 🔧 **[Developer Notes](docs/DEVELOPER_NOTES.md)** - Technical details for developers
 
 ### Security Notes
 ⚠️ **Before production deployment:**

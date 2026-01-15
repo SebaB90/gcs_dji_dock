@@ -162,7 +162,6 @@ export default function App() {
         const lon = parseFloat(data.drone?.lon?.[0]?.value);
         if (!isNaN(lat) && !isNaN(lon)) {
           setDronePos([lat, lon]);
-          setPath((prev) => prev.length === 0 ? [[lat, lon]] : [...prev.slice(-100), [lat, lon]]);
         }
 
         const hLat = parseFloat(data.hangar?.home_latitude?.[0]?.value) || parseFloat(data.hangar?.lat?.[0]?.value);
@@ -176,7 +175,7 @@ export default function App() {
           handleLogout();
         }
       }
-    }, 500); // 500ms = 2 updates per second (optimized for real-time)
+    }, 200); // 200ms = 5 updates per second (smooth real-time tracking)
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
@@ -251,8 +250,8 @@ export default function App() {
             <VideoPanel 
                 dronePos={dronePos}
                 dockPos={dockPos}
-                // Puoi passare qui altri dati di telemetria per gli strumenti
-                drone={drone}   // L'intero oggetto JSON del drone
+                drone={drone}
+                backendUrl={BACKEND_URL}
             />
         </div>
 

@@ -184,6 +184,29 @@
     display: flex; gap: 8px; z-index: 10;
 }
 
+/* Source indicator with color coding */
+.source-indicator {
+    font-weight: 700;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.source-indicator.source-wide {
+    color: #5dade2;
+    text-shadow: 0 0 4px rgba(93, 173, 226, 0.8);
+}
+
+.source-indicator.source-zoom {
+    color: #52f552;
+    text-shadow: 0 0 4px rgba(82, 245, 82, 0.8);
+}
+
+.source-indicator.source-thermal {
+    color: #ff6b6b;
+    text-shadow: 0 0 4px rgba(255, 107, 107, 0.8);
+}
+
 /* -------------------------------------- */
 /* 3. TOGGLE TERMICO (Header)             */
 /* -------------------------------------- */
@@ -205,18 +228,57 @@
     padding: 0 8px;
     border-radius: 2px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     line-height: 16px;
+    position: relative;
 }
 
-.cam-toggle-btn:hover { color: #ccc; }
+.cam-toggle-btn:hover:not(:disabled) { 
+    color: #ccc; 
+    transform: scale(1.05);
+}
 
+.cam-toggle-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Active states with distinct colors for each source */
 .cam-toggle-btn.active-vis {
-    background: #1a4ccf; color: white; box-shadow: 0 0 4px rgba(26, 76, 207, 0.5);
+    background: #1a4ccf; 
+    color: white; 
+    box-shadow: 0 0 8px rgba(26, 76, 207, 0.6);
+    animation: pulse-blue 2s infinite;
+}
+
+.cam-toggle-btn.active-zoom {
+    background: #27ae60; 
+    color: white; 
+    box-shadow: 0 0 8px rgba(39, 174, 96, 0.6);
+    animation: pulse-green 2s infinite;
 }
 
 .cam-toggle-btn.active-ir {
-    background: #e74c3c; color: white; box-shadow: 0 0 4px rgba(231, 76, 60, 0.5);
+    background: #e74c3c; 
+    color: white; 
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.6);
+    animation: pulse-red 2s infinite;
+}
+
+/* Pulse animations for active buttons */
+@keyframes pulse-blue {
+    0%, 100% { box-shadow: 0 0 8px rgba(26, 76, 207, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(26, 76, 207, 0.9); }
+}
+
+@keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 8px rgba(39, 174, 96, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(39, 174, 96, 0.9); }
+}
+
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 8px rgba(231, 76, 60, 0.6); }
+    50% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.9); }
 }
 
 /* -------------------------------------- */

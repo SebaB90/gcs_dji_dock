@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/MapView.css"; 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import L from "leaflet";
 import { MdGpsFixed } from "react-icons/md"; 
 
@@ -15,6 +15,7 @@ const droneIcon = new L.Icon({
   iconUrl: "https://navigate.pl/wp-content/uploads/2024/04/EA220_drone-V1_%E7%99%BD%E5%BA%95%E5%9B%BE%E6%97%A0%E9%98%B4%E5%BD%B1_0829_020065-1.png",
   iconSize: [35, 35],
   iconAnchor: [17, 17],
+  className: 'smooth-drone-marker', // Add class for CSS transition
 });
 const dockIcon = new L.Icon({
   iconUrl: "https://dronexcanada.ca/cdn/shop/files/DJI-Dock1_3.png?v=1711490763&width=480",
@@ -121,7 +122,6 @@ export default function MapView({
         {/* MARKERS */}
         {dockPos && <Marker position={dockPos} icon={dockIcon} />}
         {dronePos && <Marker position={dronePos} icon={droneIcon} />}
-        {path.length > 1 && <Polyline positions={path} color="#3498db" weight={4} opacity={0.8} />}
 
         {waypoints.map((wp, i) => (
           <Marker

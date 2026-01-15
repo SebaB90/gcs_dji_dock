@@ -416,9 +416,24 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
 # ====================
 # TELEMETRIA
 # ====================
+
+# Telemetry cache to reduce API calls
+_telemetry_cache = {
+    "data": None,
+    "timestamp": 0,
+    "ttl": 1.0  # Cache for 1 second
+}
+
 @app.get("/telemetry")
 def get_telemetry(current_user: dict = Depends(get_current_user)):
-    """Restituisce telemetria drone + hangar (protected endpoint) - Optimized with connection pooling"""
+    """Restituisce telemetria drone + hangar (protected endpoint) - Optimized with connection pooling and caching"""
+    import time
+    
+    # Check cache first
+    current_time = time.time()
+    if _telemetry_cache["data"] and (current_time - _telemetry_cache["timestamp"]) < _telemetry_cache["ttl"]:
+        return _telemetry_cache["data"]
+    
     try:
         token = get_tb_token()
         headers = {"X-Authorization": f"Bearer {token}"}
@@ -440,7 +455,13 @@ def get_telemetry(current_user: dict = Depends(get_current_user)):
         hangar_response.raise_for_status()
         hangar = hangar_response.json()
 
-        return {"drone": drone, "hangar": hangar}
+        result = {"drone": drone, "hangar": hangar}
+        
+        # Update cache
+        _telemetry_cache["data"] = result
+        _telemetry_cache["timestamp"] = current_time
+        
+        return result
 
     except requests.exceptions.Timeout:
         logger.error("ThingsBoard API timeout")

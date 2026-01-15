@@ -1,17 +1,17 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=GCS DJI Dock
-Comment=Ground Control Station for DJI Dock 2
-Exec=/home/sebab/0_dev/gcs_dji_dock/scripts/launch.sh
+Name=GCS DJI Dock (Debug)
+Comment=Ground Control Station for DJI Dock 2 - Debug Mode with Logs
+Exec=/home/sebab/0_dev/gcs_dji_dock/scripts/launch-debug.sh
 Icon=/home/sebab/0_dev/gcs_dji_dock/frontend/public/appLogo.png
 Path=/home/sebab/0_dev/gcs_dji_dock
 Terminal=false
 Categories=Development;Engineering;Utility;
 StartupNotify=true
-StartupWMClass=GCS-DJI-Dock
-Keywords=drone;GCS;DJI;control;dock;ground control;
-Actions=Start;Stop;Status;
+StartupWMClass=GCS-DJI-Dock-Debug
+Keywords=drone;GCS;DJI;control;dock;debug;logs;
+Actions=Start;Stop;Status;Logs;
 
 [Desktop Action Start]
 Name=Start Services
@@ -24,3 +24,7 @@ Exec=/home/sebab/0_dev/gcs_dji_dock/scripts/stop.sh
 [Desktop Action Status]
 Name=Check Status
 Exec=gnome-terminal -- /home/sebab/0_dev/gcs_dji_dock/scripts/status.sh
+
+[Desktop Action Logs]
+Name=View Logs
+Exec=gnome-terminal --tab --title="Backend" -- tail -f /home/sebab/0_dev/gcs_dji_dock/logs/backend.log --tab --title="Frontend" -- tail -f /home/sebab/0_dev/gcs_dji_dock/logs/frontend.log

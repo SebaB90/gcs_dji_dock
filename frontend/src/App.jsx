@@ -175,7 +175,7 @@ export default function App() {
           handleLogout();
         }
       }
-    }, 200); // 200ms = 5 updates per second (smooth real-time tracking)
+    }, 2000); // 2000ms = 0.5 updates per second (reduced to avoid rate limiting)
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 

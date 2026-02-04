@@ -45,32 +45,34 @@ const getGpsFixData = (fixType) => {
     }
 };
 
-export default function TelemetryPanel({ drone, hangar, dronePos }) {
-  // === DRONE TELEMETRY ===
-  const battery = drone?.battery_level?.[0]?.value ?? null;
-  const groundspeed = drone?.groundspeed?.[0]?.value ?? null;
-  const altitude = drone?.alt?.[0]?.value ?? null;
-  const heading = drone?.heading?.[0]?.value ?? null;
-  const mode = drone?.mode?.[0]?.value ?? "N/A";
-  const status = drone?.system_status?.[0]?.value ?? "N/A";
-  const sat = drone?.gps_num_satellites?.[0]?.value ?? null;
-  const fix = drone?.gps_fix_type?.[0]?.value ?? null;
-  const fixData = getGpsFixData(fix);
-  const dfh = drone?.distance_from_home?.[0]?.value ?? null;
+export default function TelemetryPanel({ telemetry }) {
+  // Helper to get latest value from telemetry arrays
+  const getVal = (key) => telemetry?.[key]?.[0]?.value ?? null;
+  // Dock sub-object
+  const dock = getVal("dock") || {};
 
-  const vx = parseFloat(drone?.velocity_x?.[0]?.value) ?? 0;
-  const vy = parseFloat(drone?.velocity_y?.[0]?.value) ?? 0;
-  const vz = parseFloat(drone?.velocity_z?.[0]?.value) ?? 0;
+  // Drone metrics
+  const battery = getVal("battery_level") ?? dock.drone_battery_level ?? null;
+  const groundspeed = getVal("groundspeed");
+  const altitude = getVal("alt");
+  const heading = getVal("heading");
+  const mode = getVal("mode") ?? dock.dock_mode ?? "N/A";
+  const status = getVal("system_status") ?? dock.dock_mode ?? "N/A";
+  const sat = getVal("gps_num_satellites");
+  const fix = getVal("gps_fix_type");
+  const dfh = getVal("distance_from_home");
+  const vx = parseFloat(getVal("velocity_x")) || 0;
+  const vy = parseFloat(getVal("velocity_y")) || 0;
+  const vz = parseFloat(getVal("velocity_z")) || 0;
+  const vectorSpeed = (Math.sqrt(vx*vx + vy*vy + vz*vz)).toFixed(2);
+  const dronePos = [getVal("lat"), getVal("lon")];
 
-  const vectorSpeed = Math.sqrt(vx*vx + vy*vy + vz*vz).toFixed(2);
+  // Dock metrics
+  const dockTemp = dock.dock_temperature ?? getVal("dock_temperature") ?? null;
+  const dockHumidity = dock.humidity ?? getVal("humidity") ?? null;
+  const dockWind = dock.wind_speed ?? getVal("wind_speed") ?? null;
 
-  // === DOCK TELEMETRY ===
-  const dock = hangar?.dock?.[0]?.value || {};
-  const dockTemp = dock.dock_temperature || hangar?.ext_tmp?.[0]?.value || null;
-  const dockHumidity = dock.humidity || hangar?.ext_humidity?.[0]?.value || null;
-  const dockWind = dock.wind_speed || hangar?.wind?.[0]?.value || null;
-
-  // === STYLING ===
+  // Styling
   let BatteryIcon = BatteryFull;
   let batteryColor = "#2ecc71";
   if (battery !== null) {
@@ -82,7 +84,6 @@ export default function TelemetryPanel({ drone, hangar, dronePos }) {
       batteryColor = "#f1c40f";
     }
   }
-
   const statusColor =
     status === "online"
       ? "#2ecc71"
@@ -90,102 +91,54 @@ export default function TelemetryPanel({ drone, hangar, dronePos }) {
       ? "#e74c3c"
       : "#3498db";
 
+  // GPS fix helper
+  const getGpsFixData = (fixType) => {
+    switch (fixType) {
+      case 0: return { label: "No Fix", color: "#e74c3c" };
+      case 1: return { label: "GPS Fix", color: "#f1c40f" };
+      case 2: return { label: "Diff GPS", color: "#f1c40f" };
+      case 3: return { label: "RTK Float", color: "#f1c40f" };
+      case 4: return { label: "RTK Fixed (4)", color: "#2ecc71" };
+      case 5: return { label: "RTK Fixed (5)", color: "#2ecc71" };
+      default: return { label: `Fix ${fixType}`, color: "#999" };
+    }
+  };
+  const fixData = getGpsFixData(fix);
+
   return (
     <div className="telemetry-drawer">
-
       {/* HEADER */}
       <div className="drawer-header-tele">
         <img src={droneIcon} className="drawer-drone-icon" alt="Drone" />
         <div className="status-label">
           <span className="status-dot" style={{ background: statusColor }} />
-          <span>{status.toUpperCase().replace('_', ' ')}</span>
+          <span>{String(status).toUpperCase().replace('_', ' ')}</span>
         </div>
       </div>
 
-      {/* SEZIONE 1 */}
+      {/* Drone Metrics */}
       <div className="section-title">Drone Metrics</div>
       <div className="telemetry-grid">
-        
-        <MetricCard 
-          icon={BatteryIcon} 
-          title="Battery" 
-          value={battery !== null ? battery.toFixed(0) : "N/A"} 
-          unit="%" 
-          color={batteryColor}
-        />
-        
-        <MetricCard 
-          icon={Plane} 
-          title="Mode" 
-          value={mode.toUpperCase().replace('_', ' ')} 
-          color="#3498db"
-        />
-
-        <MetricCard 
-          icon={Activity} 
-          title="Altitude (AGL)" 
-          value={altitude !== null ? altitude.toFixed(2) : "N/A"} 
-          unit="m" 
-        />
-        
-        <MetricCard 
-          icon={Gauge} 
-          title="Ground Speed (XY)" 
-          value={groundspeed !== null ? groundspeed.toFixed(2) : "N/A"} 
-          unit="m/s" 
-        />
-        
-        <MetricCard 
-          icon={Compass} 
-          title="Heading (Yaw)" 
-          value={heading !== null ? heading.toFixed(1) : "N/A"} 
-          unit="°" 
-        />
-        
-        <MetricCard 
-          icon={Send} 
-          title="Vector Speed (3D)" 
-          value={vectorSpeed} 
-          unit="m/s" 
-          color={parseFloat(vectorSpeed) > 0.1 ? "#2ecc71" : "#999"}
-        />
+        <MetricCard icon={BatteryIcon} title="Battery" value={battery !== null ? Number(battery).toFixed(0) : "N/A"} unit="%" color={batteryColor} />
+        <MetricCard icon={Plane} title="Mode" value={String(mode).toUpperCase().replace('_', ' ')} color="#3498db" />
+        <MetricCard icon={Activity} title="Altitude (AGL)" value={altitude !== null ? Number(altitude).toFixed(2) : "N/A"} unit="m" />
+        <MetricCard icon={Gauge} title="Ground Speed (XY)" value={groundspeed !== null ? Number(groundspeed).toFixed(2) : "N/A"} unit="m/s" />
+        <MetricCard icon={Compass} title="Heading (Yaw)" value={heading !== null ? Number(heading).toFixed(1) : "N/A"} unit="°" />
+        <MetricCard icon={Send} title="Vector Speed (3D)" value={vectorSpeed} unit="m/s" color={parseFloat(vectorSpeed) > 0.1 ? "#2ecc71" : "#999"} />
       </div>
 
-      {/* SEZIONE 2 */}
+      {/* Position & GPS */}
       <div className="section-title">Position & GPS</div>
       <div className="telemetry-grid cols-1">
-        
-        <MetricCard 
-          icon={Target}
-          title="Coordinates (Lat, Lon)" 
-          value={`${dronePos?.[0]?.toFixed(6) ?? 'N/A'}, ${dronePos?.[1]?.toFixed(6) ?? 'N/A'}`} 
-        />
-        
-        <MetricCard 
-          icon={MapPin} 
-          title="Distance From Home" 
-          value={dfh !== null ? dfh.toFixed(2) : "N/A"} 
-          unit="m" 
-        />
+        <MetricCard icon={Target} title="Coordinates (Lat, Lon)" value={`${dronePos?.[0]?.toFixed(6) ?? 'N/A'}, ${dronePos?.[1]?.toFixed(6) ?? 'N/A'}`} />
+        <MetricCard icon={MapPin} title="Distance From Home" value={dfh !== null ? Number(dfh).toFixed(2) : "N/A"} unit="m" />
       </div>
-
       <div className="telemetry-grid">
-        <MetricCard 
-          icon={Satellite} 
-          title="Satellites" 
-          value={sat ?? "N/A"} 
-          color={sat && sat >= 10 ? "#2ecc71" : "#f1c40f"}
-        />
-        
-        <MetricCard 
-          icon={fixData.color === "#2ecc71" ? Satellite : AlertTriangle} 
-          title="GPS Fix Type" 
-          value={fixData.label} 
-          color={fixData.color}
-        />
+        <MetricCard icon={Satellite} title="Satellites" value={sat ?? "N/A"} color={sat && sat >= 10 ? "#2ecc71" : "#f1c40f"} />
+        <MetricCard icon={fixData.color === "#2ecc71" ? Satellite : AlertTriangle} title="GPS Fix Type" value={fixData.label} color={fixData.color} />
       </div>
 
-      {/* SEZIONE 3 */}
+      {/* Dock / Environmental */}
       <div className="section-title">Dock / Environmental</div>
       <div className="telemetry-grid">
         <MetricCard icon={Thermometer} title="Temperature" value={dockTemp ?? "N/A"} unit="°C" />

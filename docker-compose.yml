@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gcs_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # 1. Mount del codice sorgente (Hot Reload) - READ ONLY per sicurezza
+      - ./backend/app:/app/app:ro
+      
+      # 2. ECCEZIONE PER IL DATABASE (Nested Volume)
+      # Sovrascriviamo la regola sopra solo per la cartella database.
+      # Questo permette a Python di creare e scrivere il file .db qui dentro
+      # senza dover creare file vuoti manualmente sul PC.
+      - ./backend/app/database:/app/app/database
+      
+      # 3. Mount del file .env
+      - ./backend/.env:/app/.env:ro
+      
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - gcs_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gcs_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.js:/app/vite.config.js
+      - ./frontend/.env:/app/.env:ro
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - gcs_network
+
+networks:
+  gcs_network:
+    driver: bridge

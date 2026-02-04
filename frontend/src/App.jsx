@@ -21,6 +21,7 @@ export default function App() {
   // --- STATI DATI ---
   const [drone, setDrone] = useState(null);
   const [hangar, setHangar] = useState(null);
+  const [telemetry, setTelemetry] = useState(null);
   const [dronePos, setDronePos] = useState(DEFAULT_CENTER);
   const [dockPos, setDockPos] = useState(null);
   const [path, setPath] = useState([]);
@@ -155,8 +156,9 @@ export default function App() {
       try {
         const res = await axios.get(`${BACKEND_URL}/telemetry`);
         const data = res.data;
-        setDrone(data.drone);
-        setHangar(data.hangar);
+        setTelemetry(data);
+        setDrone(data.drone); // legacy, can be removed after migration
+        setHangar(data.hangar); // legacy, can be removed after migration
 
         const lat = parseFloat(data.drone?.lat?.[0]?.value);
         const lon = parseFloat(data.drone?.lon?.[0]?.value);
@@ -214,15 +216,16 @@ export default function App() {
             onLogout={handleLogout}
         />
         <SidebarDrawer
-            section={drawerSection}
-            onClose={() => setDrawerSection(null)}
-            drone={drone}
-            hangar={hangar}
-            waypoints={waypoints}
-            setWaypoints={setWaypoints}
-            dronePos={dronePos}
-            dockPos={dockPos}
-            backendUrl={BACKEND_URL}
+          section={drawerSection}
+          onClose={() => setDrawerSection(null)}
+          telemetry={telemetry}
+          drone={drone}
+          hangar={hangar}
+          waypoints={waypoints}
+          setWaypoints={setWaypoints}
+          dronePos={dronePos}
+          dockPos={dockPos}
+          backendUrl={BACKEND_URL}
         />
       </div>
 
@@ -247,12 +250,12 @@ export default function App() {
 
         {/* PANNELLO DESTRO: DASHBOARD (Video + Strumenti) */}
         <div className="right-pane-dashboard" style={{ width: `${100 - leftWidth}%` }}>
-            <VideoPanel 
-                dronePos={dronePos}
-                dockPos={dockPos}
-                drone={drone}
-                backendUrl={BACKEND_URL}
-            />
+          <VideoPanel 
+            telemetry={telemetry}
+            dronePos={dronePos}
+            dockPos={dockPos}
+            backendUrl={BACKEND_URL}
+          />
         </div>
 
       </div>

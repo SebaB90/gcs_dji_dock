@@ -5,7 +5,7 @@ import WeatherPanel from "./WeatherPanel";
 import HealthPanel from "./HealthPanel"; // Import del nuovo pannello
 import { MdClose } from "react-icons/md"; 
 
-export default function SidebarDrawer({ section, onClose, drone, hangar, waypoints, setWaypoints, dronePos, dockPos, backendUrl }) {
+export default function SidebarDrawer({ section, onClose, telemetry, drone, hangar, waypoints, setWaypoints, dronePos, dockPos, backendUrl }) {
   
   if (!section || section === "video") { 
     return null;
@@ -39,7 +39,7 @@ export default function SidebarDrawer({ section, onClose, drone, hangar, waypoin
       
       <div className="drawer-content">
         {section === "telemetry" && (
-          <TelemetryPanel drone={drone} hangar={hangar} dronePos={dronePos} />
+          <TelemetryPanel telemetry={telemetry} />
         )}
         
         {/* NUOVA SEZIONE */}

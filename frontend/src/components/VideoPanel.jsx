@@ -124,8 +124,7 @@ const VisualMetric = ({ label, value, unit, icon: Icon, max = 100, type = "text"
     );
 };
 
-// === COMPONENTE PRINCIPALE ===
-export default function VideoPanel({ dronePos, drone, backendUrl }) {
+export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl }) {
     const [irMode, setIrMode] = useState(false);
     const [activeSource, setActiveSource] = useState("wide"); // Track active video source
     const [switchingSource, setSwitchingSource] = useState(false); // Track switching state
@@ -220,13 +219,34 @@ export default function VideoPanel({ dronePos, drone, backendUrl }) {
         return () => clearInterval(interval);
     }, [backendUrl]);
 
-    // Estrazione Dati Sicura dal JSON
-    const altitude = parseFloat(drone?.alt?.[0]?.value ?? 0);
-    const hSpeed = parseFloat(drone?.groundspeed?.[0]?.value ?? 0);
-    const vSpeed = parseFloat(drone?.vertical_speed?.[0]?.value ?? 0); 
-    const distance = parseFloat(drone?.distance_from_home?.[0]?.value ?? 0);
-    const battery = parseFloat(drone?.battery_level?.[0]?.value ?? 0);
-    const sats = parseInt(drone?.gps_num_satellites?.[0]?.value ?? 0);
+    // Unified telemetry extraction (like TelemetryPanel)
+    // Defensive: if telemetry is missing, show N/A
+    if (!telemetry) {
+        return (
+            <div className="dashboard-panel">
+                <div className="instruments-row">
+                    <div className="pfd-container">
+                        <h3 className="telemetry-header">Telemetry Data</h3>
+                        <div className="telemetry-grid">
+                            <VisualMetric label="ALT (AGL)" value={"N/A"} unit="m" icon={Activity} />
+                            <VisualMetric label="H. SPD" value={"N/A"} unit="m/s" icon={Navigation} />
+                            <VisualMetric label="V. SPD" value={"N/A"} unit="m/s" icon={MoveVertical} />
+                            <VisualMetric label="DIST" value={"N/A"} unit="m" icon={Navigation} />
+                            <VisualMetric label="BATTERY" value={"N/A"} unit="%" icon={Battery} type="battery" max={100} />
+                            <VisualMetric label="SATS" value={"N/A"} unit="" icon={Signal} type="signal" max={25} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    const getVal = (key) => telemetry?.[key]?.[0]?.value ?? null;
+    const altitude = parseFloat(getVal("alt")) || 0;
+    const hSpeed = parseFloat(getVal("groundspeed")) || 0;
+    const vSpeed = parseFloat(getVal("vertical_speed")) || 0;
+    const distance = parseFloat(getVal("distance_from_home")) || 0;
+    const battery = parseFloat(getVal("battery_level")) || 0;
+    const sats = parseInt(getVal("gps_num_satellites")) || 0;
 
     // Costruzione del Toggle Camera per l'header
     const DroneControls = (

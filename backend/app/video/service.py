@@ -1,11 +1,12 @@
 import struct
 import atexit
 import logging
+import os
 from multiprocessing import shared_memory
 
 logger = logging.getLogger(__name__)
 
-SHM_NAME = "my_shm"
+SHM_NAME = "my_shm"  # Python SharedMemory adds "/" prefix automatically
 SIZE = 4  # 1 int32
 
 # Costanti
@@ -29,6 +30,14 @@ class VideoService:
         try:
             self.shm = shared_memory.SharedMemory(name=SHM_NAME, create=True, size=SIZE)
             logger.info(f"Shared memory '{SHM_NAME}' created")
+
+            # Set permissions to 666 (rw-rw-rw-) so all users/containers can access it
+            try:
+                os.chmod(f"/dev/shm/{SHM_NAME}", 0o666)
+                logger.info(f"Shared memory permissions set to 666 (rw-rw-rw-)")
+            except Exception as e:
+                logger.warning(f"Could not set shared memory permissions: {e}")
+
             self.set_source(VIDEO_SOURCE_WIDE)
         except FileExistsError:
             try:

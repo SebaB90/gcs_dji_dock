@@ -1,40 +1,60 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional, Dict, Any
+"""
+file: app/missions/schemas.py
+"""
+from pydantic import BaseModel, ConfigDict, Field
+from typing import List, Optional, Any
 from datetime import datetime
+from enum import Enum
 
-# --- Shared Models ---
+
+# ======================
+# COMPONENTI BASE
+# ======================
 class Waypoint(BaseModel):
     lat: float
     lon: float
     alt: float
+    heading: Optional[float] = 0.0
+    tilt_gimbal: Optional[float] = 0.0
 
 class RecurrencePattern(BaseModel):
-    pattern: str = "daily" # o 'weekly'
-    days: List[int] # 0=Domenica, 1=Lunedi... (o viceversa, standardizziamo a 0=Lunedi come python)
-    times: List[str] # ["08:00", "16:00"]
+    days: List[int] = []  # 0=Lun, 6=Dom. Vuoto = Tutti i giorni
+    times: List[str]      # ["08:00", "14:30"]
+    
+class ScheduleType(str, Enum):
+    ONCE = "once"
+    RECURRING = "recurring"
 
-# --- Mission Schemas ---
+
+# ======================
+# MISSIONI
+# ======================
 class MissionBase(BaseModel):
     name: str
     description: Optional[str] = ""
-    speed: float = 1.0
+    speed: float = Field(default=1.0, gt=0)
     rth: bool = True
+    nadir: bool = False
     photo: bool = False
+    photo_time: int = Field(default=0, ge=0)
     waypoints: List[Waypoint]
 
 class MissionCreate(MissionBase):
     pass
 
-# QUESTA È LA CLASSE CHE MANCAVA
 class MissionResponse(MissionBase):
     id: int
     created_at: datetime
-    # Configurazione Pydantic V2 per leggere da oggetti SQLAlchemy
+    created_by: str
     model_config = ConfigDict(from_attributes=True)
 
-# --- Schedule Schemas ---
+
+# ======================
+# SCHEDULING
+# ======================
 class ScheduleCreate(BaseModel):
-    schedule_type: str # 'once', 'recurring', 'immediate'
+    dock_name: str = "DOCK1"
+    schedule_type: ScheduleType = Field(..., description="Tipo di programma: 'once' o 'recurring'")
     start_time: Optional[datetime] = None
     recurrence_pattern: Optional[RecurrencePattern] = None
     enabled: bool = True
@@ -44,15 +64,23 @@ class ScheduleResponse(ScheduleCreate):
     mission_id: int
     last_execution: Optional[datetime] = None
     next_execution: Optional[datetime] = None
+    mission: Optional[MissionResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
-# --- Execution Schemas ---
+
+# ======================
+# ESECUZIONI
+# ======================
 class ExecutionResponse(BaseModel):
     id: int
     mission_id: int
+    schedule_id: Optional[int] = None
+    dock_name: str
+    execution_type: str
     status: str
     started_at: datetime
     completed_at: Optional[datetime] = None
-    result: Optional[Dict[str, Any]] = None
+    result: Optional[Any] = None
     error_message: Optional[str] = None
+    mission: Optional[MissionResponse] = None
     model_config = ConfigDict(from_attributes=True)

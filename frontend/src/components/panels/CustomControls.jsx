@@ -1,5 +1,5 @@
 import { useMap } from "react-leaflet";
-import "../styles/MapView.css";
+import "../map/MapView.css";
 
 export default function CustomControls({ position }) {
   const map = useMap();

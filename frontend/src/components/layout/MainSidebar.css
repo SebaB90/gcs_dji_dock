@@ -1,0 +1,202 @@
+/* src/components/layout/MainSidebar.css */
+
+/* --- CONTENITORE PRINCIPALE --- */
+.main-sidebar {
+  /* Layout e Dimensioni */
+  width: 140px; /* Ridotta per sidebar più compatta */
+  min-width: 140px; /* Evita che si schiacci */
+  height: 100vh;
+
+  /* Stile */
+  background: #1c1c1e;
+  border-right: 1px solid #333;
+  color: #dcdcdc;
+
+  /* Flexbox per spingere il footer in basso */
+  display: flex;
+  flex-direction: column;
+
+  /* Utility */
+  z-index: 3000;
+  box-sizing: border-box;
+  user-select: none;
+  position: relative;
+  transition: width 0.3s ease; /* Transizione fluida se volessi ridurla in futuro */
+}
+
+/* --- LOGO --- */
+.logo-container {
+  padding: 12px 0; /* Ridotto e bilanciato */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.company-logo {
+  max-width: 70px; /* Ridotto per adattarsi alla sidebar più stretta */
+  height: auto;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.company-logo:hover {
+  opacity: 1;
+}
+
+/* Separatore universale */
+.separator {
+  width: 80%;
+  height: 1px;
+  background-color: #333;
+  border: none;
+  margin: 8px auto;
+}
+
+/* --- STATO BATTERIA (Compatto) --- */
+.status-bar-compact {
+  width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+  margin-bottom: 5px;
+}
+
+.battery-bar {
+  display: flex;
+  align-items: center; /* Allinea icona, barra e testo orizzontalmente */
+  gap: 8px;
+  width: 100%;
+  cursor: help;
+  padding: 5px 0;
+}
+
+.battery-icon {
+  font-size: 18px;
+  color: #ccc;
+  flex-shrink: 0;
+}
+
+/* Barra di progresso custom (basata su DIV per animazioni migliori) */
+.battery-progress-bg {
+  flex-grow: 1; /* Occupa tutto lo spazio disponibile */
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.battery-progress-fill {
+  height: 100%;
+  background-color: #2ecc71;
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s;
+}
+
+.battery-progress-fill.low {
+  background-color: #ff4d4d; /* Rosso se bassa */
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.4);
+}
+
+.battery-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #bbb;
+  width: 35px; /* Larghezza fissa per allineamento numeri */
+  text-align: right;
+}
+
+/* --- NAVIGAZIONE PRINCIPALE --- */
+.navigation-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px; /* Spazio verticale ridotto tra i bottoni */
+  padding: 8px 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Stile Base Bottone Navigazione */
+.nav-item {
+  display: flex;
+  align-items: center; /* Allinea icona e testo verticalmente */
+  justify-content: flex-start; /* Allinea a sinistra */
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #aaa;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.nav-item:hover {
+  background-color: #2c2c2e;
+  color: #fff;
+  transform: translateX(2px); /* Piccolo movimento a destra su hover */
+}
+
+.nav-item.active {
+  background-color: #007bff; /* Blu DJI */
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.nav-icon {
+  font-size: 18px;
+  margin-right: 8px; /* Spazio ridotto tra icona e testo */
+  min-width: 20px; /* Assicura che le icone siano allineate */
+  display: flex;
+  justify-content: center;
+}
+
+.nav-label {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- FOOTER (Admin + Logout) --- */
+/* Questo blocco viene spinto in fondo grazie a 'margin-top: auto' */
+.sidebar-footer {
+  margin-top: auto;
+  width: 100%;
+  padding: 0 8px 16px 8px; /* Padding ridotto per sidebar compatta */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Stile specifico per Item Admin */
+.admin-item {
+  color: #ff8787; /* Rosso chiaro */
+}
+
+.admin-item:hover {
+  background-color: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+}
+
+.admin-item.active {
+  background-color: #c0392b;
+  color: white;
+  box-shadow: 0 4px 12px rgba(192, 57, 43, 0.4);
+}
+
+/* Stile specifico per Bottone Logout */
+.logout-btn {
+  margin-top: 2px;
+  border: 1px solid transparent;
+}
+
+.logout-btn:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.logout-btn .nav-icon {
+  color: #e74c3c; /* Icona rossa sempre */
+}

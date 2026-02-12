@@ -1,0 +1,107 @@
+/* =========================================
+   LAYOUT GENERALE
+   ========================================= */
+
+.app-container {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background-color: #1a1a1a;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Sezione Sidebar (Sinistra estrema) */
+.sidebar-area {
+  flex: 0 0 140px; /* <--- LARGHEZZA RIDOTTA PER SIDEBAR COMPATTA */
+  width: 140px;    /* <--- LARGHEZZA RIDOTTA PER SIDEBAR COMPATTA */
+  height: 100vh;
+  background-color: #1c1c1e; /* Match col colore della MainSidebar */
+  z-index: 3000;
+  position: relative;
+}
+
+/* =========================================
+   SPLIT VIEW CONTAINER
+   ========================================= */
+
+.split-view-container {
+  flex: 1; /* Prende tutto lo spazio rimasto (100vw - 200px) */
+  display: flex;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.left-pane-map {
+  height: 100%;
+  position: relative;
+  background-color: #222;
+  z-index: 1;
+}
+
+.gutter-col {
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  background-color: #1a1a1a;
+  border-left: 1px solid #333;
+  border-right: 1px solid #333;
+  transition: background-color 0.2s ease;
+  z-index: 100;
+}
+
+.gutter-col:hover,
+.app-container.resizing .gutter-col {
+  background-color: #007bff;
+}
+
+.right-pane-dashboard {
+  height: 100%;
+  overflow: hidden; /* Cambiato da overflow-y: auto */
+  background-color: #111;
+  position: relative;
+  border-left: 1px solid #000;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================
+   VERTICAL SPLIT (Video | Missions)
+   ========================================= */
+
+.top-pane-video {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #111;
+}
+
+.gutter-row {
+  height: 8px;
+  width: 100%;
+  cursor: row-resize;
+  background-color: #1a1a1a;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  transition: background-color 0.2s ease;
+  z-index: 100;
+}
+
+.gutter-row:hover,
+.app-container.resizing .gutter-row {
+  background-color: #007bff;
+}
+
+.bottom-pane-missions {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #141414;
+}
+
+.resizing {
+  cursor: col-resize;
+  user-select: none;
+}

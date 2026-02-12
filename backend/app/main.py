@@ -1,20 +1,7 @@
 """
 file: app/main.py
-
-Main entry point for the FieldRobotics GCS Backend application.
-
-Responsibilities:
-- Application initialization (FastAPI) and Middleware setup (CORS).
-- Database initialization (SQLAlchemy table creation).
-- Global resources setup (HTTP Session, ThingsBoard Client).
-- Router registration (Auth, Missions, Video, Docks).
-- Lifecycle events:
-  1. Automatic Admin User creation (Seed).
-  2. Mission Scheduler startup/shutdown.
-  3. Resource cleanup (HTTP sessions).
 """
-
-import logging
+from loguru import logger
 import signal
 import sys
 import requests
@@ -22,31 +9,43 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from sqlalchemy.orm import Session
 
 # Config
 from app.core.config import settings
 
 # DB & Services
 from app.database.core import engine, Base, SessionLocal
-from app.users import service as user_service  # <--- Serve per creare l'admin
+from app.users import service as user_service
 
 # Modules Controllers
 from app.users.controller import router as auth_router
 from app.missions.controller import router as missions_router
-from app.missions.scheduler import MissionSchedulerService
-import app.missions.scheduler as mission_scheduler_module
+from app.core.scheduler import MissionSchedulerService
+import app.core.scheduler as mission_scheduler_module
+from app.missions.models import MissionSchedule  # <--- Necessario per il ripristino
 from app.video.controller import router as video_router
+from app.video.service import get_video_service
 from app.docks.controller import router as docks_router
 
 # Integration
 from app.integrations.adpm.thingsboard import ThingsBoardClient
 
-# 1. Setup DB Tables
+# 1. CONFIGURAZIONE LOGGER (Mettilo prima di creare l'app)
+# Rimuoviamo il logger di default e ne mettiamo uno colorato e pulito
+logger.remove()
+logger.add(
+    sys.stderr, 
+    format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    level="INFO",
+    colorize=True
+)
+
+# 2. Setup DB Tables
+# ATTENZIONE: create_all NON aggiorna tabelle esistenti. 
+# Se hai cambiato i modelli, cancella il file .db prima di riavviare o usa Alembic.
 Base.metadata.create_all(bind=engine)
 
-# 2. Setup Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
@@ -64,7 +63,7 @@ tb_client = ThingsBoardClient(http_session)
 # 4. Middleware & Routers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1|192\.168\.(?:[1-9]|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.\d+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,19 +79,41 @@ app.include_router(docks_router)
 async def startup_event():
     logger.info("Starting GCS Backend...")
     
-    # --- A. CREAZIONE UTENTE ADMIN (SEED) ---
-    # Apriamo una sessione temporanea per controllare se l'admin esiste
     db = SessionLocal()
     try:
+        # --- A. CREAZIONE UTENTE ADMIN (SEED) ---
         user_service.init_first_user(db)
+        
+        # --- B. AVVIO SCHEDULER E RIPRISTINO ---
+        logger.info("Initializing Mission Scheduler...")
+        scheduler = MissionSchedulerService(tb_client)
+        mission_scheduler_module.scheduler_instance = scheduler
+
+        # --- C. INIZIALIZZAZIONE VIDEO SERVICE ---
+        logger.info("Initializing Video Service (Shared Memory)...")
+        video_service = get_video_service()
+        if video_service.shm is not None:
+            logger.success("✅ Video Service initialized successfully")
+        else:
+            logger.warning("⚠️  Video Service: Shared memory initialization failed")
+
+        # LOGICA DI RIPRISTINO: Ricarica i job dal DB
+        active_schedules = db.query(MissionSchedule).filter(MissionSchedule.enabled == True).all()
+        count = 0
+        for sched in active_schedules:
+            try:
+                # Riutilizziamo la logica che abbiamo scritto nel service
+                scheduler.update_schedule_job(db, sched)
+                count += 1
+            except Exception as e:
+                logger.error(f"Failed to restore schedule {sched.id}: {e}")
+        
+        logger.info(f"♻️  Restored {count} mission schedules from database.")
+
     except Exception as e:
-        logger.error(f"Errore durante la creazione dell'utente admin: {e}")
+        logger.error(f"Startup error: {e}")
     finally:
         db.close()
-    
-    # --- B. AVVIO SCHEDULER ---
-    scheduler = MissionSchedulerService(tb_client)
-    mission_scheduler_module.scheduler_instance = scheduler
     
     logger.info("System Ready.")
     
@@ -108,6 +129,15 @@ async def startup_event():
 async def shutdown_event():
     if mission_scheduler_module.scheduler_instance:
         mission_scheduler_module.scheduler_instance.stop()
+
+    # Cleanup video service shared memory
+    try:
+        video_service = get_video_service()
+        video_service.cleanup()
+        logger.info("Video Service shared memory cleaned up")
+    except Exception as e:
+        logger.error(f"Error cleaning up video service: {e}")
+
     http_session.close()
     tb_client.clear_token_cache()
     logger.info("Shutdown complete.")

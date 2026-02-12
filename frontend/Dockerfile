@@ -1,6 +1,9 @@
 # Frontend Dockerfile for GCS DJI Dock (Development)
 FROM node:20-alpine
 
+# Install timezone data for Alpine
+RUN apk add --no-cache tzdata
+
 # Set working directory
 WORKDIR /app
 

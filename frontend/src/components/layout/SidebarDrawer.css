@@ -1,0 +1,76 @@
+/* src/components/layout/SidebarDrawer.css */
+
+.drawer {
+  /* POSIZIONAMENTO OVERLAY */
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 140px; /* Spostato a destra della MainSidebar (140px) */
+  z-index: 2500; /* Sopra la mappa (di solito z-index 400), sotto la MainSidebar (3000) */
+  
+  /* DIMENSIONI E TRANSIZIONI */
+  width: 0;
+  background-color: rgba(22, 22, 22, 0.95); /* Leggermente trasparente o solido */
+  backdrop-filter: blur(5px); /* Effetto vetro opzionale */
+  border-right: 0px solid #333;
+  overflow: hidden;
+  opacity: 0;
+  
+  /* Animazione fluida */
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-in;
+  
+  /* Ombra per dare profondità sopra la mappa */
+  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+  
+  display: flex;
+  flex-direction: column;
+}
+
+/* QUANDO APERTO */
+.drawer.open {
+  width: 350px; /* Larghezza del pannello */
+  opacity: 1;
+  border-right: 1px solid #444;
+  
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-out 0.1s;
+}
+
+/* ... HEADER E CONTENT RIMANGONO UGUALI ... */
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  border-bottom: 1px solid #333;
+  background-color: inherit; /* Prende il colore del genitore */
+  white-space: nowrap;
+}
+
+.drawer-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #eee;
+}
+
+.drawer-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.drawer-close:hover {
+  background-color: #333;
+  color: white;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #444 transparent;
+}

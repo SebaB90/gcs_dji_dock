@@ -1,0 +1,171 @@
+.mission-status-panel {
+  background: rgba(20, 20, 20, 0.95);
+  border-top: 1px solid #333;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mission-status-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.no-missions-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  color: #888;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.missions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission-card {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.mission-card:hover {
+  border-color: #555;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.mission-card.executing {
+  background: linear-gradient(135deg, #2a5a2a 0%, #3a6a3a 100%);
+  border: 2px solid #4ade80;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.mission-card.next-mission {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2a4a6f 100%);
+  border: 2px solid #79a7ff;
+}
+
+.mission-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.executing-badge {
+  background: #4ade80;
+  color: #000;
+}
+
+.next-badge {
+  background: #79a7ff;
+  color: #000;
+}
+
+.mission-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mission-name {
+  color: #fff;
+  fontSize: 14px;
+  font-weight: bold;
+  flex: 1;
+}
+
+.mission-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.countdown-display {
+  color: #aaa;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.countdown-display.executing-time {
+  color: #4ade80;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.countdown-display.next-time {
+  color: #79a7ff;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.mission-details {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #888;
+}
+
+.spin-icon {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.6);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbar styling */
+.mission-status-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mission-status-panel::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.mission-status-panel::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+.mission-status-panel::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}

@@ -1,23 +1,24 @@
 import { useState } from "react";
-import axios from "axios";
-import "../styles/LoginScreen.css";
+import { useAuth } from "../context/AuthContext";
+import "./LoginPage.css";
 import { Lock, User, Eye, EyeOff } from "lucide-react";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-
-export default function LoginScreen({ onLoginSuccess }) {
+export default function LoginPage() {
+  // Definizione degli stati locali per username, password, visibilità password, errori e loading
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Funzione per gestire il submit del form di login, scatta quando l'utente preme il pulsante di login
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    e.preventDefault();   // Previene il comportamento di default del form (refresh della pagina)
+    setError("");         // Resetta eventuali errori precedenti
+    setIsLoading(true);   // Imposta lo stato di loading per disabilitare il form e mostrare un indicatore
 
-    // Validate input
+    // Validate input, verifica che username e password non siano vuoti prima di procedere con la chiamata al backend
     if (!username || !password) {
       setError("Please enter both username and password");
       setIsLoading(false);
@@ -25,23 +26,7 @@ export default function LoginScreen({ onLoginSuccess }) {
     }
 
     try {
-      // Call backend login endpoint
-      const response = await axios.post(`${BACKEND_URL}/login`, {
-        username,
-        password,
-      });
-
-      // Store JWT token and expiration in localStorage
-      const { access_token, expires_in } = response.data;
-      localStorage.setItem("gcs_token", access_token);
-      localStorage.setItem("gcs_token_expires", Date.now() + expires_in * 1000);
-      localStorage.setItem("gcs_username", username);
-
-      // Configure axios default headers for future requests
-      axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
-
-      // Call success callback
-      onLoginSuccess();
+      await login(username, password);  // Chiamata asincrona che scatta quando viene premuto il pulsante di login, se il login ha successo il codice salta al blocco finally altrimenti passa al catch
     } catch (err) {
       console.error("Login error:", err);
       
@@ -75,6 +60,7 @@ export default function LoginScreen({ onLoginSuccess }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="login-form">
+
           {/* Username Field */}
           <div className="input-group">
             <div className="input-icon">
@@ -97,7 +83,7 @@ export default function LoginScreen({ onLoginSuccess }) {
               <Lock size={18} />
             </div>
             <input
-              type={showPassword ? "text" : "password"}
+              type={showPassword ? "text" : "password"}  // Se showPassword è true, tipo text (testo visibile), altrimenti nascondi con i pallini (tipo password)
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

@@ -34,7 +34,7 @@ async def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db))
     return {
         "access_token": access_token, 
         "token_type": "bearer",
-        "expires_in (seconds)": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
 
 

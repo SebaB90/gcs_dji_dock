@@ -54,33 +54,8 @@ docker-compose up --build -d
 
 ## 🔐 Credenziali di Login
 
-- **Username:** `fieldrobotics`
-- **Password:** `FieldRobotics2025!GCS`
-
----
-
-## 🏗️ Struttura del Progetto
-
-```
-gcs_dji_dock/
-├── docker-compose.yml        # Orchestrazione servizi
-├── backend/
-│   ├── Dockerfile           # Container Python/FastAPI
-│   ├── .env                 # Configurazione backend
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── mission_db.py
-│   │   ├── mission_scheduler.py
-│   │   └── video_controller.py
-│   └── requirements.txt
-│
-└── frontend/
-    ├── Dockerfile           # Container Node/Vite
-    ├── .env                 # Configurazione frontend
-    └── src/
-        ├── App.jsx
-        └── components/
-```
+- **Username:** `admin`
+- **Password:** `admin123`
 
 ---
 

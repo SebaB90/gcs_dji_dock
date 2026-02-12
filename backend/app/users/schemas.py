@@ -5,7 +5,7 @@ Schemi Pydantic per la validazione e serializzazione dei dati relativi agli uten
 Qui viene descritto come i dati entrano ed escono dalle API
 """
 
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Optional
 from .models import UserRole
 
@@ -34,8 +34,8 @@ class UserResponse(UserBase):           # Estende UserBase aggiungendo id e is_a
 # SCHEMI AUTHENTICAZIONE
 # ======================
 class LoginRequest(BaseModel):          # Cosa deve inviare l'utente per fare login, username e password obbligatori
-    username: str
-    password: str
+    username: str = Field(..., examples=["admin"])
+    password: str = Field(..., examples=["admin123"])
 
 class Token(BaseModel):                 # Cosa restituisce l'API dopo un login riuscito, include il token di accesso e informazioni sul tipo di token e scadenza
     access_token: str

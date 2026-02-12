@@ -1,11 +1,10 @@
-version: '3.8'
-
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: gcs_backend
+    ipc: "host"  # Share IPC namespace with host for shared memory access
     ports:
       - "8000:8000"
     volumes:
@@ -21,8 +20,13 @@ services:
       # 3. Mount del file .env
       - ./backend/.env:/app/.env:ro
       
+      # 4. Sincronizzazione orario host
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      
     environment:
       - PYTHONUNBUFFERED=1
+      - TZ=Europe/Rome
     restart: unless-stopped
     networks:
       - gcs_network
@@ -41,6 +45,11 @@ services:
       - ./frontend/vite.config.js:/app/vite.config.js
       - ./frontend/.env:/app/.env:ro
       - /app/node_modules
+      # Sincronizzazione orario host
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - TZ=Europe/Rome
     depends_on:
       - backend
     restart: unless-stopped

@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { 
-    LayoutGrid, 
-    Monitor, 
-    Activity, 
-    Navigation, 
-    MoveVertical, 
-    Battery, 
-    Signal, 
-    ArrowUp, 
-    ArrowDown 
+import videoService from "../../services/video.service";
+import {
+    LayoutGrid,
+    Monitor,
+    Activity,
+    Navigation,
+    MoveVertical,
+    Battery,
+    Signal,
+    ArrowUp,
+    ArrowDown
 } from "lucide-react"; 
-import "../styles/VideoPanel.css";
+import "./VideoPanel.css";
 
 // === COMPONENTE FRAME VIDEO ===
 // Accetta 'headerContent' per inserire pulsanti custom (es. switch termica) nell'intestazione
@@ -128,10 +128,10 @@ export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl })
     const [irMode, setIrMode] = useState(false);
     const [activeSource, setActiveSource] = useState("wide"); // Track active video source
     const [switchingSource, setSwitchingSource] = useState(false); // Track switching state
-    
+
     // Gestione Layout (Quali stream mostrare)
     const [visibleStreams, setVisibleStreams] = useState({
-        dock: true,
+        dock: false,
         drone: true
     });
 
@@ -140,6 +140,7 @@ export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl })
     };
 
     // Function to switch video source via API
+    // Function to switch video source via API
     const switchVideoSource = async (sourceName) => {
         // Prevent multiple simultaneous switches
         if (switchingSource) return;
@@ -147,35 +148,17 @@ export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl })
         setSwitchingSource(true);
         
         try {
-            const token = localStorage.getItem("gcs_token");
-            if (!token) {
-                console.error("No authentication token found");
-                alert("Please login to switch camera sources");
-                setSwitchingSource(false);
-                return;
-            }
-
-            const response = await axios.post(
-                `${backendUrl}/api/video/source/${sourceName}`,
-                {},
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
+            const response = await videoService.setVideoSource(sourceName);
             setActiveSource(sourceName);
-            console.log(`✅ Video source switched to: ${sourceName}`, response.data);
+            console.log(`✅ Video source switched to: ${sourceName}`, response);
         } catch (error) {
             console.error(`❌ Error switching to ${sourceName}:`, error);
             
             // Better error feedback for user
             if (error.response?.status === 401) {
                 alert("Session expired. Please login again.");
-                // Optionally trigger logout/redirect to login
             } else if (error.code === "ERR_NETWORK") {
-                alert(`Network error: Cannot reach backend at ${backendUrl}\nPlease check your connection.`);
+                alert(`Network error: Cannot reach backend\nPlease check your connection.`);
             } else {
                 alert(`Failed to switch camera to ${sourceName}. ${error.response?.data?.detail || error.message}`);
             }
@@ -188,21 +171,10 @@ export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl })
     useEffect(() => {
         const fetchCurrentSource = async () => {
             try {
-                const token = localStorage.getItem("gcs_token");
-                if (!token) return;
-
-                const response = await axios.get(
-                    `${backendUrl}/api/video/source`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    }
-                );
-
-                if (response.data.source_name) {
-                    setActiveSource(response.data.source_name);
-                    console.log(`📹 Current video source: ${response.data.source_name}`);
+                const response = await videoService.getVideoSource();
+                if (response.source_name) {
+                    setActiveSource(response.source_name);
+                    console.log(`📹 Current video source: ${response.source_name}`);
                 }
             } catch (error) {
                 console.error("Error fetching current video source:", error);
@@ -211,35 +183,12 @@ export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl })
 
         // Fetch immediately on mount
         fetchCurrentSource();
-        
-        // Poll every 5 seconds to keep UI in sync
-        const interval = setInterval(fetchCurrentSource, 5000);
-        
-        // Cleanup interval on unmount
-        return () => clearInterval(interval);
-    }, [backendUrl]);
 
-    // Unified telemetry extraction (like TelemetryPanel)
-    // Defensive: if telemetry is missing, show N/A
-    if (!telemetry) {
-        return (
-            <div className="dashboard-panel">
-                <div className="instruments-row">
-                    <div className="pfd-container">
-                        <h3 className="telemetry-header">Telemetry Data</h3>
-                        <div className="telemetry-grid">
-                            <VisualMetric label="ALT (AGL)" value={"N/A"} unit="m" icon={Activity} />
-                            <VisualMetric label="H. SPD" value={"N/A"} unit="m/s" icon={Navigation} />
-                            <VisualMetric label="V. SPD" value={"N/A"} unit="m/s" icon={MoveVertical} />
-                            <VisualMetric label="DIST" value={"N/A"} unit="m" icon={Navigation} />
-                            <VisualMetric label="BATTERY" value={"N/A"} unit="%" icon={Battery} type="battery" max={100} />
-                            <VisualMetric label="SATS" value={"N/A"} unit="" icon={Signal} type="signal" max={25} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+        // Poll every 10 seconds
+        const interval = setInterval(fetchCurrentSource, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
     const getVal = (key) => telemetry?.[key]?.[0]?.value ?? null;
     const altitude = parseFloat(getVal("alt")) || 0;
     const hSpeed = parseFloat(getVal("groundspeed")) || 0;
@@ -336,22 +285,6 @@ export default function VideoPanel({ telemetry, dronePos, dockPos, backendUrl })
                         <div>SIGNAL LOST</div>
                     </div>
                 )}
-            </div>
-
-            {/* 3. TELEMETRIA VISUALE */}
-            <div className="instruments-row">
-                <div className="pfd-container">
-                    <h3 className="telemetry-header">Telemetry Data</h3>
-                    
-                    <div className="telemetry-grid">
-                        <VisualMetric label="ALT (AGL)" value={altitude.toFixed(1)} unit="m" icon={Activity} />
-                        <VisualMetric label="H. SPD" value={hSpeed.toFixed(1)} unit="m/s" icon={Navigation} />
-                        <VisualMetric label="V. SPD" value={Math.abs(vSpeed).toFixed(1)} unit="m/s" icon={MoveVertical} trend={vSpeed} />
-                        <VisualMetric label="DIST" value={distance.toFixed(0)} unit="m" icon={Navigation} />
-                        <VisualMetric label="BATTERY" value={battery.toFixed(0)} unit="%" icon={Battery} type="battery" max={100} />
-                        <VisualMetric label="SATS" value={sats} unit="" icon={Signal} type="signal" max={25} />
-                    </div>
-                </div>
             </div>
         </div>
     );

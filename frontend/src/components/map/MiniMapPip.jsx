@@ -7,7 +7,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet"; 
-import "../styles/VideoPanel.css"; // Usa gli stili del video panel
+import "../panels/VideoPanel.css"; // Usa gli stili del video panel
 
 // Icone (mantieni le definizioni)
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;

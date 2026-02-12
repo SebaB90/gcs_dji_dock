@@ -54,49 +54,62 @@
 .mission-expanded input[type="number"],
 .mission-expanded select {
   width: 100%;
-  padding: 8px 10px; /* Padding migliorato */
+  padding: 8px 10px;
   border: 1px solid #555;
   border-radius: 6px;
   font-size: 13px;
   margin-bottom: 12px;
-  background: #333; /* Sfondo scuro per gli input */
+  background: #333;
   color: #fff;
   cursor: text;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mission-expanded input[type="number"]:focus,
+.mission-expanded select:focus {
+  outline: none;
+  border-color: #1a4ccf;
+  box-shadow: 0 0 0 3px rgba(26, 76, 207, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Tabs */
 .mission-tabs {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 15px;
-  padding-bottom: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #444;
-  gap: 6px;
+  gap: 8px;
 }
 
 .mission-tabs button {
   flex: 1;
   border: 1px solid #444;
   background: #333;
-  padding: 8px 4px;
+  padding: 10px 6px;
   cursor: pointer;
   border-radius: 6px;
   font-size: 13px;
-  transition: 0.2s;
+  transition: all 0.3s ease;
   font-weight: 500;
   color: #ccc;
+  position: relative;
 }
 
 .mission-tabs button.active {
-  background: #1a4ccf; /* Blu accento */
+  background: #1a4ccf;
   color: white;
   font-weight: 600;
   border-color: #1a4ccf;
   transform: none;
+  box-shadow: 0 0 20px rgba(26, 76, 207, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .mission-tabs button:hover:not(.active) {
-    background: #444;
+  background: #444;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 
@@ -104,8 +117,11 @@
 .wp-list {
   max-height: 200px;
   overflow-y: auto;
-  margin-bottom: 12px;
-  padding-right: 5px;
+  margin-bottom: 15px;
+  padding-right: 8px;
+  background: rgba(20, 20, 20, 0.3);
+  border-radius: 6px;
+  padding: 8px;
 }
 /* Scrollbar customizzata per la dark mode */
 .wp-list::-webkit-scrollbar {
@@ -125,11 +141,18 @@
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  background: #252525; /* Sfondo scuro per l'elemento */
+  background: linear-gradient(135deg, #2a2a2a, #1f1f1f);
   border-radius: 4px;
-  padding: 6px 8px;
-  margin-bottom: 4px;
-  border-left: 3px solid #1a4ccf; /* Accento a sinistra */
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid #1a4ccf;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.wp-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(26, 76, 207, 0.2);
 }
 
 .wp-item strong {
@@ -154,7 +177,14 @@
   text-align: center;
   background: #333;
   color: #fff;
-  margin: 0; /* Rimuovi margini esterni */
+  margin: 0;
+  transition: all 0.2s ease;
+}
+
+.wp-item input:focus {
+  outline: none;
+  border-color: #1a4ccf;
+  box-shadow: 0 0 0 2px rgba(26, 76, 207, 0.2);
 }
 
 .no-wp {
@@ -169,39 +199,83 @@
 .mission-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 15px;
 }
 
 .mission-buttons button {
   border: none;
   border-radius: 6px;
-  padding: 8px;
+  padding: 10px 12px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s ease;
   color: white;
   text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
 }
-/* Riorganizzazione dei colori dei pulsanti */
-.mission-btn-primary {
-  background: #27ae60; /* Verde (Aggiungi) */
+
+.mission-buttons button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
 }
-.mission-btn-secondary {
-  background: #e67e22; /* Arancione (Rimuovi) */
-}
-.mission-btn-danger {
-  background: #c0392b; /* Rosso (Reset) */
-}
-.mission-btn-send {
-  background: #1a4ccf; /* Blu Accento (Invia) */
-  grid-column: span 2; /* Invia occupa due colonne */
+
+.mission-buttons button:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .mission-buttons button:hover {
-  transform: none; /* Rimuovi l'animazione di sollevamento per i pulsanti del drawer */
-  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+/* Riorganizzazione dei colori dei pulsanti */
+.mission-btn-primary {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
+}
+
+.mission-btn-primary:hover {
+  box-shadow: 0 6px 16px rgba(46, 204, 113, 0.4);
+}
+
+.mission-btn-secondary {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+}
+
+.mission-btn-secondary:hover {
+  box-shadow: 0 6px 16px rgba(243, 156, 18, 0.4);
+}
+
+.mission-btn-danger {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+}
+
+.mission-btn-danger:hover {
+  box-shadow: 0 6px 16px rgba(231, 76, 60, 0.4);
+}
+
+.mission-btn-send {
+  background: linear-gradient(135deg, #3498db, #1a4ccf);
+  grid-column: span 2;
+  box-shadow: 0 4px 10px rgba(26, 76, 207, 0.3);
+}
+
+.mission-btn-send:hover {
+  box-shadow: 0 6px 16px rgba(26, 76, 207, 0.4);
 }
 
 /* 📂 CARICA MISSIONE */
@@ -216,7 +290,15 @@
   margin: 10px 0 15px 0;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(26, 76, 207, 0.3);
+  transition: all 0.3s ease;
+}
+
+.mini-map-container:hover {
+  border-color: rgba(26, 76, 207, 0.6);
+  box-shadow: 0 6px 16px rgba(26, 76, 207, 0.3);
+  transform: scale(1.02);
 }
 
 /* Footer hint */
@@ -237,27 +319,59 @@
    ENHANCED MISSION MANAGER STYLES
    =================================== */
 
+/* Main content container with padding */
+.mission-manager-content {
+  padding: 20px 12px;
+}
+
+/* Section titles styling */
+.mission-create,
+.mission-library,
+.mission-schedules,
+.mission-history {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Mission Parameters Section */
 .mission-params {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .mission-params input[type="text"] {
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid #555;
   border-radius: 6px;
   font-size: 13px;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
   background: #333;
   color: #fff;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mission-params input[type="text"]:focus {
+  outline: none;
+  border-color: #1a4ccf;
+  box-shadow: 0 0 0 3px rgba(26, 76, 207, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .params-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .checkbox-group {
@@ -283,14 +397,26 @@
 
 /* Save Button */
 .mission-btn-save {
-  background: #8e44ad; /* Purple for save */
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
   grid-column: span 2;
+  box-shadow: 0 4px 10px rgba(142, 68, 173, 0.3);
+}
+
+.mission-btn-save:hover {
+  box-shadow: 0 6px 16px rgba(142, 68, 173, 0.4);
 }
 
 .mission-btn-save:disabled,
 .mission-btn-send:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  filter: grayscale(60%);
+  box-shadow: none;
+}
+
+.mission-btn-save:disabled:hover,
+.mission-btn-send:disabled:hover {
+  transform: none;
 }
 
 /* Mission Library Styles */
@@ -309,46 +435,48 @@
 .mission-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 .mission-card {
-  background: #252525;
+  background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
   border: 1px solid #444;
   border-radius: 8px;
-  padding: 12px;
-  transition: all 0.2s ease;
+  padding: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .mission-card:hover {
   border-color: #1a4ccf;
-  box-shadow: 0 4px 8px rgba(26, 76, 207, 0.2);
+  box-shadow: 0 8px 20px rgba(26, 76, 207, 0.3);
+  transform: translateY(-3px);
 }
 
 .mission-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .mission-card-header h5 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   color: #fff;
 }
 
 .mission-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn-icon {
   background: #333;
   border: 1px solid #555;
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s ease;
@@ -362,27 +490,34 @@
 .mission-card-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
   font-size: 11px;
   color: #bbb;
 }
 
 .mission-card-info span {
-  background: #1f1f1f;
-  padding: 3px 8px;
+  background: linear-gradient(135deg, #2a2a2a, #1f1f1f);
+  padding: 5px 10px;
   border-radius: 4px;
+  border: 1px solid #333;
+  transition: all 0.2s ease;
+}
+
+.mission-card-info span:hover {
+  border-color: #1a4ccf;
+  transform: scale(1.05);
 }
 
 .mission-card-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .mission-card-buttons button {
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -390,6 +525,12 @@
   font-weight: 600;
   color: white;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.mission-card-buttons button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .btn-execute {
@@ -403,11 +544,6 @@
 .btn-history {
   background: #3498db;
   grid-column: span 2;
-}
-
-.mission-card-buttons button:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 /* Execution History Styles */
@@ -426,14 +562,14 @@
 .execution-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .execution-item {
   background: #252525;
   border-left: 4px solid #555;
   border-radius: 6px;
-  padding: 10px;
+  padding: 12px;
   transition: all 0.2s ease;
 }
 
@@ -466,21 +602,39 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
 }
 
 .status-badge.completed {
-  background: #27ae60;
+  background: linear-gradient(135deg, #27ae60, #229954);
   color: white;
 }
 
 .status-badge.failed {
-  background: #e74c3c;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
   color: white;
 }
 
 .status-badge.running {
-  background: #f39c12;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
   color: white;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+  }
 }
 
 .execution-details {
@@ -514,15 +668,16 @@
 .schedule-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 18px;
 }
 
 .schedule-card {
-  background: #252525;
+  background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
   border: 1px solid #444;
   border-radius: 8px;
-  padding: 12px;
-  transition: all 0.2s ease;
+  padding: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .schedule-card.disabled {
@@ -532,21 +687,22 @@
 
 .schedule-card:hover {
   border-color: #666;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
 .schedule-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #333;
 }
 
 .schedule-header h5 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: #fff;
 }
 
@@ -564,13 +720,15 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .btn-toggle.enabled {
-  background: #27ae60;
+  background: linear-gradient(135deg, #27ae60, #229954);
   border-color: #27ae60;
   color: white;
+  box-shadow: 0 0 15px rgba(39, 174, 96, 0.4);
 }
 
 .btn-toggle.disabled {
@@ -580,7 +738,7 @@
 }
 
 .btn-toggle:hover {
-  opacity: 0.8;
+  transform: scale(1.05);
 }
 
 .schedule-info {
@@ -622,8 +780,8 @@
   background: #1f1f1f;
   border: 1px solid #444;
   border-radius: 12px;
-  padding: 20px;
-  max-width: 400px;
+  padding: 24px;
+  max-width: 420px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
@@ -633,20 +791,20 @@
 }
 
 .modal-content h3 {
-  margin: 0 0 15px 0;
-  font-size: 16px;
+  margin: 0 0 20px 0;
+  font-size: 17px;
   color: #fff;
 }
 
 .schedule-type-selector {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
 .schedule-type-selector button {
-  padding: 10px 8px;
+  padding: 12px 8px;
   border: 2px solid #444;
   background: #252525;
   border-radius: 6px;
@@ -668,13 +826,13 @@
 }
 
 .schedule-info {
-  padding: 15px;
+  padding: 18px;
   background: #252525;
   border-radius: 6px;
   text-align: center;
   color: #bbb;
   font-size: 13px;
-  margin: 15px 0;
+  margin: 18px 0;
 }
 
 .schedule-once label,
@@ -683,34 +841,34 @@
   font-size: 12px;
   font-weight: 600;
   color: #ccc;
-  margin: 12px 0 6px 0;
+  margin: 15px 0 8px 0;
   text-transform: uppercase;
 }
 
 .schedule-once input[type="datetime-local"],
 .schedule-recurring select {
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid #555;
   border-radius: 6px;
   background: #333;
   color: #fff;
   font-size: 13px;
-  margin-bottom: 12px;
+  margin-bottom: 15px;
 }
 
 .days-selector {
-  margin: 15px 0;
+  margin: 18px 0;
 }
 
 .days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
+  gap: 6px;
 }
 
 .days-grid button {
-  padding: 8px 4px;
+  padding: 10px 4px;
   border: 1px solid #555;
   background: #252525;
   border-radius: 4px;
@@ -733,13 +891,13 @@
 
 .time-input-group {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .time-input-group input[type="time"] {
   flex: 1;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid #555;
   border-radius: 6px;
   background: #333;
@@ -748,7 +906,7 @@
 }
 
 .time-input-group button {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: none;
   background: #e74c3c;
   border-radius: 6px;
@@ -763,7 +921,7 @@
 
 .btn-add-time {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px dashed #555;
   background: transparent;
   border-radius: 6px;
@@ -771,7 +929,7 @@
   color: #1a4ccf;
   font-size: 12px;
   font-weight: 600;
-  margin-top: 5px;
+  margin-top: 8px;
   transition: all 0.2s ease;
 }
 
@@ -783,36 +941,64 @@
 .modal-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .modal-buttons button {
-  padding: 10px;
+  padding: 12px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-buttons button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.modal-buttons button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.modal-buttons button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .btn-cancel {
-  background: #555;
+  background: linear-gradient(135deg, #666, #555);
   color: #fff;
 }
 
 .btn-cancel:hover {
-  background: #666;
+  background: linear-gradient(135deg, #777, #666);
 }
 
 .btn-confirm {
-  background: #1a4ccf;
+  background: linear-gradient(135deg, #1a4ccf, #1559d8);
   color: white;
+  box-shadow: 0 4px 12px rgba(26, 76, 207, 0.4);
 }
 
 .btn-confirm:hover {
-  background: #1559d8;
+  background: linear-gradient(135deg, #1559d8, #1a4ccf);
+  box-shadow: 0 6px 16px rgba(26, 76, 207, 0.5);
 }
 
 /* Scrollbar styles for library and history */

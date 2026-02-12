@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import MiniMap from "./MiniMap";
-import "../styles/MissionManager.css";
+import MiniMap from "../map/MiniMap";
+import missionService from "../../services/mission.service";
+import "./MissionManager.css";
 
 export default function MissionManager({
   waypoints,
@@ -11,6 +12,8 @@ export default function MissionManager({
   backendUrl,
 }) {
   const [altitude, setAltitude] = useState(25);
+  const [heading, setHeading] = useState(0);
+  const [tiltGimbal, setTiltGimbal] = useState(0);
   const [activeTab, setActiveTab] = useState("create");
   
   // Mission parameters
@@ -28,9 +31,8 @@ export default function MissionManager({
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleType, setScheduleType] = useState("immediate");
   const [scheduleDateTime, setScheduleDateTime] = useState("");
-  const [recurrencePattern, setRecurrencePattern] = useState("daily");
   const [recurrenceTimes, setRecurrenceTimes] = useState(["08:00"]);
-  const [recurrenceDays, setRecurrenceDays] = useState(["Mon", "Wed", "Fri"]);
+  const [recurrenceDays, setRecurrenceDays] = useState(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]); // All days by default
   const [selectedMissionForSchedule, setSelectedMissionForSchedule] = useState(null);
   
   // Execution history
@@ -47,13 +49,8 @@ export default function MissionManager({
 
   const loadMissions = async () => {
     try {
-      const token = localStorage.getItem("gcs_token");
-      const res = await axios.get(`${backendUrl}/api/missions`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.data.status === "success") {
-        setMissions(res.data.missions);
-      }
+      const data = await missionService.getMissions();
+      setMissions(data);
     } catch (err) {
       console.warn("⚠️ Could not load missions:", err);
     }
@@ -61,17 +58,9 @@ export default function MissionManager({
 
   const loadExecutionHistory = async (missionId = null) => {
     try {
-      const token = localStorage.getItem("gcs_token");
-      const url = missionId 
-        ? `${backendUrl}/api/executions?mission_id=${missionId}&limit=20`
-        : `${backendUrl}/api/executions?limit=50`;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.data.status === "success") {
-        setExecutions(res.data.executions);
-        setShowExecutions(true);
-      }
+      const data = await missionService.getExecutionHistory({ limit: 50 });
+      setExecutions(data);
+      setShowExecutions(true);
     } catch (err) {
       console.error("❌ Error loading execution history:", err);
     }
@@ -79,13 +68,9 @@ export default function MissionManager({
 
   const loadSchedules = async () => {
     try {
-      const token = localStorage.getItem("gcs_token");
-      const res = await axios.get(`${backendUrl}/api/schedules`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.data.status === "success") {
-        setSchedules(res.data.schedules);
-      }
+      const data = await missionService.getSchedules();
+      // Backend returns array directly (ordered by next execution)
+      setSchedules(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("❌ Error loading schedules:", err);
     }
@@ -95,10 +80,7 @@ export default function MissionManager({
     if (!confirm("Are you sure you want to delete this schedule?")) return;
 
     try {
-      const token = localStorage.getItem("gcs_token");
-      await axios.delete(`${backendUrl}/api/schedules/${scheduleId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await missionService.deleteSchedule(scheduleId);
       alert("✅ Schedule deleted");
       loadSchedules();
     } catch (err) {
@@ -109,6 +91,9 @@ export default function MissionManager({
   };
 
   const toggleSchedule = async (scheduleId, currentStatus) => {
+    alert("⚠️ Toggle schedule feature not implemented in backend");
+    return;
+    /* Backend endpoint not available
     try {
       const token = localStorage.getItem("gcs_token");
       await axios.patch(
@@ -123,6 +108,7 @@ export default function MissionManager({
       const errorMsg = err.response?.data?.detail || err.message || "Unknown error";
       alert(`❌ Error updating schedule: ${errorMsg}`);
     }
+    */
   };
 
   const addWaypoint = (e) => {
@@ -141,6 +127,8 @@ export default function MissionManager({
       lat: base.lat + delta,
       lon: base.lon + delta,
       alt: currentAlt,
+      heading: Number(heading),
+      tilt_gimbal: Number(tiltGimbal),
     };
     setWaypoints((prev) => [...prev, newWp]);
   };
@@ -168,37 +156,21 @@ export default function MissionManager({
     }
 
     try {
-      const token = localStorage.getItem("gcs_token");
       const missionData = {
         name: missionName,
+        description: "",
         waypoints: waypoints,
         speed: missionSpeed,
         rth: missionRTH,
-        photo: missionPhoto
+        nadir: false,
+        photo: missionPhoto,
+        photo_time: 0
       };
 
-      if (editingMission) {
-        // Update existing mission
-        const res = await axios.put(
-          `${backendUrl}/api/missions/${editingMission.id}`,
-          missionData,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.data.status === "success") {
-          alert(`✅ Mission "${missionName}" updated!`);
-          setEditingMission(null);
-        }
-      } else {
-        // Create new mission
-        const res = await axios.post(
-          `${backendUrl}/api/missions`,
-          missionData,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.data.status === "success") {
-          alert(`✅ Mission "${missionName}" saved successfully!`);
-        }
-      }
+      // Create new mission
+      await missionService.createMission(missionData);
+      alert(`✅ Mission "${missionName}" created successfully!`);
+      setEditingMission(null);
       
       loadMissions();
       setMissionName("");
@@ -250,17 +222,12 @@ export default function MissionManager({
     }
   };
 
-  const executeStoredMission = async (missionId) => {
+  const executeStoredMission = async (missionId, dockName = "dock1") => {
+    if (!confirm("Execute this mission immediately?")) return;
+
     try {
-      const token = localStorage.getItem("gcs_token");
-      const res = await axios.post(
-        `${backendUrl}/api/missions/${missionId}/execute`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.data.status === "success") {
-        alert(`✅ ${res.data.message}`);
-      }
+      const result = await missionService.executeMission(missionId, dockName);
+      alert(`✅ ${result.message}`);
     } catch (err) {
       console.error("❌ Error executing mission:", err);
       const errorMsg = err.response?.data?.detail || err.message || "Unknown error";
@@ -278,8 +245,20 @@ export default function MissionManager({
     if (!selectedMissionForSchedule) return;
 
     try {
-      const token = localStorage.getItem("gcs_token");
+      // Handle immediate execution separately
+      if (scheduleType === "immediate") {
+        const result = await missionService.executeMission(
+          selectedMissionForSchedule.id,
+          "dock1"
+        );
+        alert(`✅ ${result.message}`);
+        setShowScheduleModal(false);
+        return;
+      }
+
+      // Handle scheduled missions (once or recurring)
       let scheduleData = {
+        dock_name: "dock1", // Default dock
         schedule_type: scheduleType,
         enabled: true
       };
@@ -289,34 +268,41 @@ export default function MissionManager({
           alert("⚠️ Please select date and time");
           return;
         }
-        scheduleData.start_time = new Date(scheduleDateTime).toISOString();
+        // Convert local datetime to ISO string without timezone conversion
+        // datetime-local returns "YYYY-MM-DDTHH:mm" in local time
+        // We need to preserve the user's intended time, not convert to UTC
+        const localDate = new Date(scheduleDateTime);
+        // Get timezone offset in minutes and convert to milliseconds
+        const timezoneOffset = localDate.getTimezoneOffset() * 60000;
+        // Adjust the date by the timezone offset to compensate for toISOString() UTC conversion
+        const adjustedDate = new Date(localDate.getTime() - timezoneOffset);
+        scheduleData.start_time = adjustedDate.toISOString();
       } else if (scheduleType === "recurring") {
         if (recurrenceTimes.length === 0) {
           alert("⚠️ Please add at least one execution time");
           return;
         }
-        
+
+        // Map day names to numbers: Mon=0, Sun=6
+        const dayMap = {"Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6};
+        const dayNumbers = recurrenceDays.map(day => dayMap[day]);
+
         scheduleData.schedule_type = "recurring";
-        scheduleData.recurrence_pattern = recurrencePattern;
+        scheduleData.recurrence_pattern = {
+          days: dayNumbers,
+          times: recurrenceTimes
+        };
         scheduleData.start_time = new Date().toISOString();
-        
-        if (recurrencePattern === "daily") {
-          scheduleData.recurrence_value = recurrenceTimes.join(",");
-        } else if (recurrencePattern === "weekly") {
-          scheduleData.recurrence_value = `${recurrenceDays.join(",")}:${recurrenceTimes.join(",")}`;
-        }
       }
 
-      const res = await axios.post(
-        `${backendUrl}/api/missions/${selectedMissionForSchedule.id}/schedules`,
-        scheduleData,
-        { headers: { Authorization: `Bearer ${token}` } }
+      await missionService.scheduleMission(
+        selectedMissionForSchedule.id,
+        scheduleData
       );
 
-      if (res.data.status === "success") {
-        alert(`✅ ${res.data.message}`);
-        setShowScheduleModal(false);
-      }
+      alert(`✅ Mission scheduled successfully!`);
+      setShowScheduleModal(false);
+      loadSchedules();
     } catch (err) {
       console.error("❌ Error creating schedule:", err);
       const errorMsg = err.response?.data?.detail || err.message || "Unknown error";
@@ -328,10 +314,7 @@ export default function MissionManager({
     if (!confirm("Are you sure you want to delete this mission?")) return;
 
     try {
-      const token = localStorage.getItem("gcs_token");
-      await axios.delete(`${backendUrl}/api/missions/${missionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await missionService.deleteMission(missionId);
       alert("✅ Mission deleted");
       loadMissions();
     } catch (err) {
@@ -345,8 +328,6 @@ export default function MissionManager({
     setMissionName(mission.name);
     setWaypoints(mission.waypoints);
     setMissionSpeed(mission.speed);
-    setMissionRTH(mission.rth);
-    setMissionPhoto(mission.photo);
     setEditingMission(mission);
     setActiveTab("create");
   };
@@ -424,10 +405,37 @@ export default function MissionManager({
                   id="alt-input"
                   type="number"
                   min="1"
-                  max="200"
+                  max="25"
                   step="1"
                   value={altitude}
-                  onChange={(e) => setAltitude(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setAltitude(val > 25 ? 25 : val);
+                  }}
+                />
+              </div>
+              <div>
+                <label htmlFor="heading-input">Heading (°):</label>
+                <input
+                  id="heading-input"
+                  type="number"
+                  min="-180"
+                  max="180"
+                  step="1"
+                  value={heading}
+                  onChange={(e) => setHeading(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label htmlFor="tilt-input">Gimbal Tilt (°):</label>
+                <input
+                  id="tilt-input"
+                  type="number"
+                  min="-90"
+                  max="90"
+                  step="1"
+                  value={tiltGimbal}
+                  onChange={(e) => setTiltGimbal(Number(e.target.value))}
                 />
               </div>
               <div>
@@ -436,31 +444,15 @@ export default function MissionManager({
                   id="speed-input"
                   type="number"
                   min="0.5"
-                  max="15"
-                  step="0.5"
+                  max="2"
+                  step="0.1"
                   value={missionSpeed}
-                  onChange={(e) => setMissionSpeed(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setMissionSpeed(val > 2 ? 2 : val);
+                  }}
                 />
               </div>
-            </div>
-
-            <div className="checkbox-group">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={missionRTH}
-                  onChange={(e) => setMissionRTH(e.target.checked)}
-                />
-                Return to Home
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={missionPhoto}
-                  onChange={(e) => setMissionPhoto(e.target.checked)}
-                />
-                Take Photos
-              </label>
             </div>
           </div>
 
@@ -475,19 +467,72 @@ export default function MissionManager({
                   <span>
                     {wp.lat.toFixed(5)}, {wp.lon.toFixed(5)}
                   </span>
-                  <input
-                    type="number"
-                    min="1"
-                    max="200"
-                    value={wp.alt}
-                    onClick={handleInputClick}
-                    onChange={(e) => {
-                      const newAlt = Number(e.target.value);
-                      const updated = [...waypoints];
-                      updated[i].alt = newAlt;
-                      setWaypoints(updated);
-                    }}
-                  />
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <label style={{ fontSize: '10px' }}>Alt:</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="25"
+                      value={wp.alt}
+                      onClick={handleInputClick}
+                      onChange={(e) => {
+                        const updated = [...waypoints];
+                        const val = e.target.value === '' ? '' : Number(e.target.value);
+                        updated[i].alt = val === '' ? '' : (val > 25 ? 25 : val);
+                        setWaypoints(updated);
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '') {
+                          const updated = [...waypoints];
+                          updated[i].alt = 1;
+                          setWaypoints(updated);
+                        }
+                      }}
+                      style={{ width: '50px' }}
+                    />
+                    <label style={{ fontSize: '10px' }}>Head:</label>
+                    <input
+                      type="number"
+                      min="-180"
+                      max="180"
+                      value={wp.heading || 0}
+                      onClick={handleInputClick}
+                      onChange={(e) => {
+                        const updated = [...waypoints];
+                        updated[i].heading = e.target.value === '' ? '' : Number(e.target.value);
+                        setWaypoints(updated);
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '') {
+                          const updated = [...waypoints];
+                          updated[i].heading = 0;
+                          setWaypoints(updated);
+                        }
+                      }}
+                      style={{ width: '50px' }}
+                    />
+                    <label style={{ fontSize: '10px' }}>Tilt:</label>
+                    <input
+                      type="number"
+                      min="-90"
+                      max="90"
+                      value={wp.tilt_gimbal || 0}
+                      onClick={handleInputClick}
+                      onChange={(e) => {
+                        const updated = [...waypoints];
+                        updated[i].tilt_gimbal = e.target.value === '' ? '' : Number(e.target.value);
+                        setWaypoints(updated);
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '') {
+                          const updated = [...waypoints];
+                          updated[i].tilt_gimbal = 0;
+                          setWaypoints(updated);
+                        }
+                      }}
+                      style={{ width: '50px' }}
+                    />
+                  </div>
                 </div>
               ))
             )}
@@ -553,8 +598,6 @@ export default function MissionManager({
                   <div className="mission-card-info">
                     <span>📍 {mission.waypoints.length} waypoints</span>
                     <span>⚡ {mission.speed} m/s</span>
-                    <span>{mission.rth ? "🔙 RTH" : "❌ No RTH"}</span>
-                    <span>{mission.photo ? "📷 Photo" : "❌ No Photo"}</span>
                   </div>
 
                   <div className="mini-map-container">
@@ -602,7 +645,7 @@ export default function MissionManager({
                       {schedule.schedule_type === "immediate" && "⚡ Immediate"}
                       {schedule.schedule_type === "once" && "📅 One-Time"}
                       {schedule.schedule_type === "recurring" && "🔄 Recurring"}
-                      {" - Mission ID: "}{schedule.mission_id}
+                      {" - "}{schedule.mission?.name || `Mission #${schedule.mission_id}`}
                     </h5>
                     <div className="schedule-actions">
                       <button
@@ -628,13 +671,15 @@ export default function MissionManager({
                     )}
                     {schedule.schedule_type === "recurring" && schedule.recurrence_pattern && (
                       <div>
-                        <div>🔄 Pattern: {schedule.recurrence_pattern.pattern}</div>
-                        <div>⏰ Times: {schedule.recurrence_pattern.times?.join(", ")}</div>
-                        {schedule.recurrence_pattern.pattern === "weekly" && (
-                          <div>📆 Days: {schedule.recurrence_pattern.days?.map(d => 
-                            ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d]
+                        {schedule.recurrence_pattern.days && schedule.recurrence_pattern.days.length > 0 && schedule.recurrence_pattern.days.length < 7 && (
+                          <div>📆 Days: {schedule.recurrence_pattern.days.map(d => 
+                            ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d]
                           ).join(", ")}</div>
                         )}
+                        {(!schedule.recurrence_pattern.days || schedule.recurrence_pattern.days.length === 0 || schedule.recurrence_pattern.days.length === 7) && (
+                          <div>📆 Days: Every day</div>
+                        )}
+                        <div>⏰ Times: {schedule.recurrence_pattern.times?.join(", ")}</div>
                       </div>
                     )}
                     {schedule.next_execution && (
@@ -730,31 +775,20 @@ export default function MissionManager({
 
             {scheduleType === "recurring" && (
               <div className="schedule-recurring">
-                <label>Pattern:</label>
-                <select
-                  value={recurrencePattern}
-                  onChange={(e) => setRecurrencePattern(e.target.value)}
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-
-                {recurrencePattern === "weekly" && (
-                  <div className="days-selector">
-                    <label>Days:</label>
-                    <div className="days-grid">
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-                        <button
-                          key={day}
-                          className={recurrenceDays.includes(day) ? "active" : ""}
-                          onClick={() => toggleDay(day)}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
+                <div className="days-selector">
+                  <label>Days (leave all selected for daily):</label>
+                  <div className="days-grid">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                      <button
+                        key={day}
+                        className={recurrenceDays.includes(day) ? "active" : ""}
+                        onClick={() => toggleDay(day)}
+                      >
+                        {day}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
 
                 <label>Execution Times:</label>
                 {recurrenceTimes.map((time, index) => (

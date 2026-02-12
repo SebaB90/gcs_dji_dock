@@ -31,17 +31,59 @@
   transition: all 0.2s linear !important;
 }
 
+/* Glow effect for markers */
+.glow-marker {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)) 
+          drop-shadow(0 0 12px rgba(30, 144, 255, 0.6))
+          drop-shadow(0 0 16px rgba(30, 144, 255, 0.4));
+}
+
+/* Pulsing halo animation for dock */
+@keyframes pulsing-halo {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.1;
+  }
+}
+
+/* Faster pulsing for drone */
+@keyframes pulsing-halo-fast {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.15;
+  }
+}
+
+.pulsing-halo {
+  animation: pulsing-halo 3s ease-in-out infinite;
+}
+
+.pulsing-halo-fast {
+  animation: pulsing-halo-fast 2s ease-in-out infinite;
+}
+
 .leaflet-tooltip {
-  background-color: #333;
+  background-color: rgba(28, 28, 30, 0.95);
   color: #fff;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   font-size: 12px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-weight: 600;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
 }
-.leaflet-tooltip-top:before { border-top-color: #333; }
+.leaflet-tooltip-top:before { 
+  border-top-color: rgba(28, 28, 30, 0.95);
+}
 
 /* ================================================= */
 /* CONTROLLI MAPPA (Zoom & Recenter) - STILE PULITO */
@@ -116,4 +158,89 @@
     width: 18px;
     height: 18px;
     color: #1a4ccf; /* Blu DJI */
+}
+
+/* ================================================= */
+/* CUSTOM WAYPOINT MARKERS ANIMATIONS */
+/* ================================================= */
+
+/* Pulse animation for active mission waypoints */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+/* Custom waypoint marker hover effect */
+.custom-waypoint-marker:hover {
+  cursor: pointer;
+  z-index: 1000 !important;
+}
+
+/* Smooth transitions for all custom markers */
+.custom-waypoint-marker {
+  transition: all 0.2s ease;
+}
+
+/* ================================================= */
+/* MISSION LEGEND */
+/* ================================================= */
+
+.mission-legend {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  font-family: 'Inter', sans-serif;
+  min-width: 200px;
+}
+
+.legend-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #333;
+}
+
+.legend-item:last-child {
+  margin-bottom: 0;
+}
+
+.legend-marker {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-marker.executing {
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.legend-marker.scheduled {
+  background: #79a7ff;
+  opacity: 0.6;
 }

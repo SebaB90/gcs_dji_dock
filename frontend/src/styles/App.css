@@ -212,3 +212,28 @@ html, body, #root {
       height: 50%; /* Divide a metà orizzontalmente */
   }
 }
+
+.app-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #0e0e0e; /* Colore di sfondo scuro */
+  color: #888;
+  font-family: monospace;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-left-color: #007bff; /* Blu DJI */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

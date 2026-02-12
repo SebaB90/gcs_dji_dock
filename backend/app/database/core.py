@@ -13,7 +13,7 @@ try:
     SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 except ImportError:
     # Fallback se settings non è ancora configurato
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./gcs_data.db"
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./database_gcs_dji.db"
 
 # Creazione Engine
 engine = create_engine(

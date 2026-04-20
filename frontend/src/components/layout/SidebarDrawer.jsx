@@ -13,6 +13,7 @@ export default function SidebarDrawer({
   telemetry,
   waypoints,
   setWaypoints,
+  mapCenter,
   dronePos,
   dockPos,
   backendUrl
@@ -58,6 +59,7 @@ export default function SidebarDrawer({
           <MissionManager
             waypoints={waypoints}
             setWaypoints={setWaypoints}
+            mapCenter={mapCenter}
             dronePos={dronePos}
             dockPos={dockPos}
             backendUrl={backendUrl}

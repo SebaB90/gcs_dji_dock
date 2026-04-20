@@ -7,6 +7,7 @@ import "./MissionManager.css";
 export default function MissionManager({
   waypoints,
   setWaypoints,
+  mapCenter,
   dronePos,
   dockPos,
   backendUrl,
@@ -14,6 +15,7 @@ export default function MissionManager({
   const [altitude, setAltitude] = useState(25);
   const [heading, setHeading] = useState(0);
   const [tiltGimbal, setTiltGimbal] = useState(0);
+  const [hover, setHover] = useState(0);
   const [activeTab, setActiveTab] = useState("create");
   
   // Mission parameters
@@ -114,21 +116,18 @@ export default function MissionManager({
   const addWaypoint = (e) => {
     e.stopPropagation();
     const currentAlt = Number(altitude);
-    
-    const base =
-      waypoints.length > 0
-        ? waypoints[waypoints.length - 1]
-        : (dronePos && { lat: dronePos[0], lon: dronePos[1], alt: currentAlt }) ||
-          (dockPos && { lat: dockPos[0], lon: dockPos[1], alt: currentAlt }) ||
-          { lat: 44.5721, lon: 11.2514, alt: currentAlt };
 
-    const delta = waypoints.length * 0.00005;
+    // Use map center if available, otherwise fallback to default logic
+    const centerLat = mapCenter?.[0] ?? dronePos?.[0] ?? dockPos?.[0] ?? 44.5721;
+    const centerLon = mapCenter?.[1] ?? dronePos?.[1] ?? dockPos?.[1] ?? 11.2514;
+
     const newWp = {
-      lat: base.lat + delta,
-      lon: base.lon + delta,
+      lat: centerLat,
+      lon: centerLon,
       alt: currentAlt,
       heading: Number(heading),
       tilt_gimbal: Number(tiltGimbal),
+      hover: Number(hover),
     };
     setWaypoints((prev) => [...prev, newWp]);
   };
@@ -203,6 +202,9 @@ export default function MissionManager({
               lat: wp.lat,
               lon: wp.lon,
               alt: wp.alt,
+              heading: wp.heading || 0,
+              tilt_gimbal: wp.tilt_gimbal || 0,
+              hover: wp.hover || 0,
             })),
           },
         },
@@ -453,6 +455,21 @@ export default function MissionManager({
                   }}
                 />
               </div>
+              <div>
+                <label htmlFor="hover-input">Hover Time (s):</label>
+                <input
+                  id="hover-input"
+                  type="number"
+                  min="0"
+                  max="60"
+                  step="1"
+                  value={hover}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setHover(val > 60 ? 60 : (val < 0 ? 0 : val));
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -527,6 +544,27 @@ export default function MissionManager({
                         if (e.target.value === '') {
                           const updated = [...waypoints];
                           updated[i].tilt_gimbal = 0;
+                          setWaypoints(updated);
+                        }
+                      }}
+                      style={{ width: '50px' }}
+                    />
+                    <label style={{ fontSize: '10px' }}>Hover:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={wp.hover || 0}
+                      onClick={handleInputClick}
+                      onChange={(e) => {
+                        const updated = [...waypoints];
+                        updated[i].hover = e.target.value === '' ? '' : Number(e.target.value);
+                        setWaypoints(updated);
+                      }}
+                      onBlur={(e) => {
+                        if (e.target.value === '') {
+                          const updated = [...waypoints];
+                          updated[i].hover = 0;
                           setWaypoints(updated);
                         }
                       }}

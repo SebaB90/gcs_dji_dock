@@ -67,27 +67,53 @@ function MapControls({ dronePos }) {
 
   return (
     <div className="custom-map-controls" onMouseDown={prevent} onDoubleClick={prevent}>
-      
+
       {/* Gruppo Zoom (+ e - uniti) */}
-      <div className="ctrl-group"> 
+      <div className="ctrl-group">
         <button className="ctrl-btn" onClick={zoomIn}>+</button>
         <button className="ctrl-btn" onClick={zoomOut}>−</button>
       </div>
-      
+
       {/* Pulsante Recenter (Staccato) */}
       <button className="ctrl-btn recenter" onClick={recenter} title="Centra sul Drone">
-        <MdGpsFixed /> 
+        <MdGpsFixed />
       </button>
 
     </div>
   );
 }
 
+// --------------------------------------------------------
+// 3. MAP CENTER TRACKER
+// --------------------------------------------------------
+function MapCenterTracker({ setMapCenter }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const updateCenter = () => {
+      const center = map.getCenter();
+      setMapCenter([center.lat, center.lng]);
+    };
+
+    // Update on moveend (after user finishes panning)
+    map.on('moveend', updateCenter);
+
+    // Update initial center
+    updateCenter();
+
+    return () => {
+      map.off('moveend', updateCenter);
+    };
+  }, [map, setMapCenter]);
+
+  return null;
+}
+
 // ====================================================================
 // COMPONENTE PRINCIPALE MAPVIEW
 // ====================================================================
-export default function MapView({ 
-    dronePos, dockPos, path, waypoints, setWaypoints, isResizing,
+export default function MapView({
+    dronePos, dockPos, path, waypoints, setWaypoints, setMapCenter, isResizing,
     scheduledMissions = [],
     activeExecutions = []
 }) {
@@ -149,6 +175,7 @@ export default function MapView({
 
         <MapResizeHandler isResizing={isResizing} />
         <MapControls dronePos={dronePos} />
+        <MapCenterTracker setMapCenter={setMapCenter} />
 
         {/* MARKERS WITH GLOW EFFECT */}
         {/* Dock with pulsing halo */}
@@ -244,6 +271,7 @@ export default function MapView({
                   <div style={{ fontSize: '11px' }}>
                     <strong>Scheduled WP{i + 1}</strong><br/>
                     Alt: {wp.alt}m<br/>
+                    {wp.hover > 0 && <span>Hover: {wp.hover}s<br/></span>}
                     Mission: {nextScheduledMission.mission.name}
                   </div>
                 </Tooltip>
@@ -277,6 +305,7 @@ export default function MapView({
                   <div style={{ fontSize: '11px' }}>
                     <strong>🚁 Executing WP{i + 1}</strong><br/>
                     Alt: {wp.alt}m<br/>
+                    {wp.hover > 0 && <span>Hover: {wp.hover}s<br/></span>}
                     Mission: {activeMission.mission.name}<br/>
                     Status: {activeMission.status}
                   </div>

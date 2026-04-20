@@ -26,7 +26,7 @@ import app.core.scheduler as mission_scheduler_module
 from app.missions.models import MissionSchedule  # <--- Necessario per il ripristino
 from app.video.controller import router as video_router
 from app.video.service import get_video_service
-from app.docks.controller import router as docks_router
+from app.telemetry.controller import router as telemetry_router
 
 # Integration
 from app.integrations.adpm.thingsboard import ThingsBoardClient
@@ -72,7 +72,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(missions_router)
 app.include_router(video_router)
-app.include_router(docks_router)
+app.include_router(telemetry_router)
 
 # 5. Events
 @app.on_event("startup")

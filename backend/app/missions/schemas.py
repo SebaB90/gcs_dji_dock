@@ -16,6 +16,7 @@ class Waypoint(BaseModel):
     alt: float
     heading: Optional[float] = 0.0
     tilt_gimbal: Optional[float] = 0.0
+    hover: Optional[int] = 0  # Tempo di sosta in secondi ad ogni waypoint raggiunto
 
 class RecurrencePattern(BaseModel):
     days: List[int] = []  # 0=Lun, 6=Dom. Vuoto = Tutti i giorni

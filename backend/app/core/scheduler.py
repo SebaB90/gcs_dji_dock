@@ -52,7 +52,7 @@ class MissionSchedulerService:
     
     def _system_unified_loop(self):
         """Eseguito ogni secondo: aggiorna RAM e controlla stati missioni."""
-        from app.docks.service import DockService
+        from app.telemetry.service import DockService
         from app.missions.service import check_mission_logic
         
         # DEBUG: Decommenta se vuoi vedere che il cuore batte
@@ -123,7 +123,8 @@ class MissionSchedulerService:
                     "lon": float(w.get("lon")),
                     "alt": float(w.get("alt")),
                     "heading": float(w.get("heading", 0)),
-                    "tilt_gimbal": float(w.get("tilt_gimbal", 0))
+                    "tilt_gimbal": float(w.get("tilt_gimbal", 0)),
+                    "hover": int(w.get("hover", 0))
                 })
 
             payload = {

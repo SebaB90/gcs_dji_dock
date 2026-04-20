@@ -36,6 +36,7 @@ export default function MainPage() {
   // Stati UI
   const [drawerSection, setDrawerSection] = useState(null);
   const [waypoints, setWaypoints] = useState([]);
+  const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
 
   // Logica Split View Orizzontale (Map | Dashboard)
   const [leftWidth, setLeftWidth] = useState(50);
@@ -86,12 +87,14 @@ export default function MainPage() {
         setTelemetry1(data);
 
         // Estrai coordinate drone dalla telemetria completa ThingsBoard
-        const lat = parseFloat(data.latitude?.[0]?.value);
-        const lon = parseFloat(data.longitude?.[0]?.value);
+        const lat = parseFloat(data.lat?.[0]?.value);
+        const lon = parseFloat(data.lon?.[0]?.value);
         if (!isNaN(lat) && !isNaN(lon)) setDronePos1([lat, lon]);
 
-        // Estrai coordinate dock (usa le stesse coordinate per ora)
-        if (!isNaN(lat) && !isNaN(lon)) setDockPos1([lat, lon]);
+        // Estrai coordinate dock (home position)
+        const hLat = parseFloat(data.home_latitude?.[0]?.value);
+        const hLon = parseFloat(data.home_longitude?.[0]?.value);
+        if (!isNaN(hLat) && !isNaN(hLon)) setDockPos1([hLat, hLon]);
 
       } catch (err) {
         console.error("Telemetry error dock1", err);
@@ -111,12 +114,14 @@ export default function MainPage() {
         setTelemetry2(data);
 
         // Estrai coordinate drone dalla telemetria completa ThingsBoard
-        const lat = parseFloat(data.latitude?.[0]?.value);
-        const lon = parseFloat(data.longitude?.[0]?.value);
+        const lat = parseFloat(data.lat?.[0]?.value);
+        const lon = parseFloat(data.lon?.[0]?.value);
         if (!isNaN(lat) && !isNaN(lon)) setDronePos2([lat, lon]);
 
-        // Estrai coordinate dock (usa le stesse coordinate per ora)
-        if (!isNaN(lat) && !isNaN(lon)) setDockPos2([lat, lon]);
+        // Estrai coordinate dock (home position)
+        const hLat = parseFloat(data.home_latitude?.[0]?.value);
+        const hLon = parseFloat(data.home_longitude?.[0]?.value);
+        if (!isNaN(hLat) && !isNaN(hLon)) setDockPos2([hLat, hLon]);
 
       } catch (err) {
         console.error("Telemetry error dock2", err);
@@ -166,6 +171,7 @@ export default function MainPage() {
           telemetry={drawerSection === "dock2" ? telemetry2 : telemetry1}
           waypoints={waypoints}
           setWaypoints={setWaypoints}
+          mapCenter={mapCenter}
           dronePos={drawerSection === "dock2" ? dronePos2 : dronePos1}
           dockPos={drawerSection === "dock2" ? dockPos2 : dockPos1}
           backendUrl={import.meta.env.VITE_BACKEND_URL}
@@ -181,6 +187,7 @@ export default function MainPage() {
             isResizing={isResizing}
             waypoints={waypoints}
             setWaypoints={setWaypoints}
+            setMapCenter={setMapCenter}
             scheduledMissions={scheduledMissions}
             activeExecutions={activeExecutions}
           />

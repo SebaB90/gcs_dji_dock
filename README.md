@@ -266,15 +266,9 @@ def get_db():
         db.close()
 ```
 
----
+#### Schema Tabelle Principali
 
-### **integrations/** — Servizi Esterni
-
-La cartella `integrations` gestisce l'integrazione con servizi esterni (ThingsBoard ADPM, DJI Cloud API, ecc.). È strutturata per essere modulare e facilmente estendibile in futuro a nuove integrazioni.
-
-## 📊 Database Schema
-
-### Tabelle Principali
+Il database SQLite contiene le seguenti tabelle principali:
 
 **users** — Utenti dell'applicazione
 ```sql
@@ -297,6 +291,10 @@ id, mission_id, schedule_id, dock_name, execution_type, status, started_at, resu
 ```
 
 ---
+
+### **integrations/** — Servizi Esterni
+
+La cartella `integrations` gestisce l'integrazione con servizi esterni (ThingsBoard ADPM, DJI Cloud API, ecc.). È strutturata per essere modulare e facilmente estendibile in futuro a nuove integrazioni.
 
 #### **integrations/adpm/thingsboard.py**
 **Client HTTP** per comunicare con **ThingsBoard ADPM** (Autonomous Drone Platform Management).

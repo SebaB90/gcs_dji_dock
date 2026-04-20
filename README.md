@@ -114,42 +114,164 @@ docker-compose up --build -d
 Il backend è organizzato in **moduli tematici**, ognuno con una **struttura coerente e prevedibile**.
 
 ```
-backend/app/
-├── main.py                              # Entry point del backend
-├── core/
-│   ├── config.py                        # Configurazione centralizzata (.env)
-│   ├── scheduler.py                     # Gestione scheduler APScheduler
-│   └── __init__.py
-├── database/
-│   ├── core.py                          # Setup SQLAlchemy engine
-│   └── __init__.py
-├── integrations/
-│   └── adpm/
-│       └── thingsboard.py               # Client API ThingsBoard (ADPM)
-├── users/
-│   ├── models.py                        # ORM model User
-│   ├── schemas.py                       # Pydantic schemas (request/response)
-│   ├── service.py                       # Business logic users
-│   ├── controller.py                    # FastAPI routes (/users, /auth)
-│   └── __init__.py
-├── missions/
-│   ├── models.py                        # ORM models (Mission, Schedule, Execution)
-│   ├── schemas.py                       # Pydantic schemas
-│   ├── service.py                       # Business logic missioni
-│   ├── controller.py                    # FastAPI routes (/missions)
-│   └── __init__.py
-├── telemetry/
-│   ├── service.py                       # Fetch telemetry da ThingsBoard
-│   ├── controller.py                    # WebSocket routes (/ws/telemetry)
-│   └── __init__.py
-├── video/
-│   ├── service.py                       # Video streaming (shared memory)
-│   ├── controller.py                    # FastAPI routes (/video)
-│   └── __init__.py
-└── requirements.txt
+backend/
+├── venv/                                    # Virtual environment Python (dipendenze locali)
+├── app/
+│   ├── main.py                              # Entry point del backend
+│   ├── core/
+│   │   ├── config.py                        # Configurazione centralizzata (.env)
+│   │   ├── scheduler.py                     # Gestione scheduler APScheduler
+│   │   └── __init__.py
+│   ├── database/
+│   │   ├── core.py                          # Setup SQLAlchemy engine
+│   │   └── __init__.py
+│   ├── integrations/
+│   │   └── adpm/
+│   │       └── thingsboard.py               # Client API ThingsBoard (ADPM)
+│   ├── users/
+│   │   ├── models.py                        # ORM model User
+│   │   ├── schemas.py                       # Pydantic schemas (request/response)
+│   │   ├── service.py                       # Business logic users
+│   │   ├── controller.py                    # FastAPI routes (/users, /auth)
+│   │   └── __init__.py
+│   ├── missions/
+│   │   ├── models.py                        # ORM models (Mission, Schedule, Execution)
+│   │   ├── schemas.py                       # Pydantic schemas
+│   │   ├── service.py                       # Business logic missioni
+│   │   ├── controller.py                    # FastAPI routes (/missions)
+│   │   └── __init__.py
+│   ├── telemetry/
+│   │   ├── service.py                       # Fetch telemetry da ThingsBoard
+│   │   ├── controller.py                    # WebSocket routes (/ws/telemetry)
+│   │   └── __init__.py
+│   ├── video/
+│   │   ├── service.py                       # Video streaming (shared memory)
+│   │   ├── controller.py                    # FastAPI routes (/video)
+│   │   └── __init__.py
+│   └── database/
+│       └── gcs.db                           # Database SQLite (auto-creato)
+├── requirements.txt                         # Dipendenze Python (FastAPI, SQLAlchemy, ecc.)
+├── Dockerfile                               # Immagine Docker per il backend
+├── .env.example                             # Template variabili di ambiente
+└── .env                                     # Variabili di ambiente (gitignored)
 ```
 
 ### Spiegazione della Struttura
+
+#### **Ambiente e Dipendenze**
+
+Il backend gestisce le dipendenze Python in tre livelli:
+
+**1. Python venv (Sviluppo Locale)**
+
+La cartella `venv/` è un **Virtual Environment Python** che isola le dipendenze del progetto dal sistema.
+
+```bash
+# Creazione del venv
+python3 -m venv venv
+
+# Attivazione (Linux/Mac)
+source venv/bin/activate
+
+# Attivazione (Windows)
+venv\Scripts\activate
+
+# Installazione dipendenze
+pip install -r requirements.txt
+```
+
+**Vantaggi:**
+- Dipendenze isolate per progetto
+- Nessun conflitto con altri progetti Python
+- Facile da ripulire (basta cancellare `venv/`)
+
+---
+
+**2. requirements.txt (Elenco Dipendenze)**
+
+File `requirements.txt` contiene l'elenco di **tutti i pacchetti Python** necessari:
+
+```
+FastAPI==0.118.3
+Uvicorn==0.37.0
+SQLAlchemy==2.0.25
+APScheduler==3.10.4
+python-jose==3.3.0
+passlib==1.7.4
+bcrypt==4.0.1
+requests==2.32.5
+loguru==latest
+pydantic==2.12.0
+pydantic-settings==2.1.0
+python-dotenv==1.1.1
+```
+
+Installazione: `pip install -r requirements.txt`
+
+---
+
+**3. Dockerfile (Immagine Docker)**
+
+File `Dockerfile` definisce come **costruire l'immagine Docker** del backend:
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Processo:**
+1. Usa immagine Python 3.11 slim (minimal)
+2. Installa dipendenze da requirements.txt
+3. Copia codice sorgente
+4. Avvia Uvicorn server sulla porta 8000
+
+---
+
+**4. docker-compose (Orchestrazione)**
+
+File `docker-compose.yml` (a livello root) orchestra **frontend e backend** insieme:
+
+```yaml
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: gcs_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/.env:/app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: gcs_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+```
+
+**Vantaggi:**
+- Un comando per avviare tutto: `docker-compose up -d`
+- Isolamento completo (nessun conflitto con sistema)
+- Facile deployment su qualsiasi macchina con Docker
+
+---
 
 #### **main.py**
 Entry point dell'applicazione FastAPI. Qui si:

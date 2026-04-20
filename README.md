@@ -171,6 +171,10 @@ app.include_router(missions_router, prefix="/missions")
 
 ---
 
+### **core/** — Configurazione e Scheduler
+
+La cartella `core` contiene i servizi fondamentali del backend: configurazione centralizzata e gestione dello scheduler.
+
 #### **core/config.py**
 Gestione centralizzata della **configurazione** da variabili di ambiente (`.env`).
 
@@ -231,6 +235,10 @@ scheduler.start()
 
 ---
 
+### **database/** — Setup Database
+
+La cartella `database` gestisce l'infrastruttura del database, definendo l'engine SQLAlchemy e le sessioni.
+
 #### **database/core.py**
 Setup infrastruttura **SQLAlchemy**.
 
@@ -256,6 +264,36 @@ def get_db():
         yield db
     finally:
         db.close()
+```
+
+---
+
+### **integrations/** — Servizi Esterni
+
+La cartella `integrations` gestisce l'integrazione con servizi esterni (ThingsBoard ADPM, DJI Cloud API, ecc.). È strutturata per essere modulare e facilmente estendibile in futuro a nuove integrazioni.
+
+## 📊 Database Schema
+
+### Tabelle Principali
+
+**users** — Utenti dell'applicazione
+```sql
+id, username, hashed_password, email, is_active, role
+```
+
+**missions** — Definizioni missioni (waypoint + parametri)
+```sql
+id, name, description, speed, rth, photo, waypoints (JSON), created_at
+```
+
+**mission_schedules** — Schedule ricorrenti
+```sql
+id, mission_id, dock_name, schedule_type, recurrence_pattern (JSON), enabled
+```
+
+**mission_executions** — Log di ogni esecuzione
+```sql
+id, mission_id, schedule_id, dock_name, execution_type, status, started_at, result (JSON)
 ```
 
 ---
@@ -583,36 +621,6 @@ Ecco come una richiesta HTTP passa attraverso il backend:
 
 ---
 
-## 💾 Stack Tecnologico
-
-### Backend (Python)
-
-| Componente | Utilizzo |
-|-----------|----------|
-| **FastAPI** | Web framework REST, Swagger auto-generato |
-| **Uvicorn** | ASGI application server |
-| **SQLAlchemy** | ORM per database relazionale |
-| **APScheduler** | Job scheduling per missioni ricorrenti |
-| **python-jose** | JWT token generation/validation |
-| **passlib + bcrypt** | Password hashing secure |
-| **Requests** | HTTP client con retry logic |
-| **Loguru** | Logging strutturato e colorato |
-| **Pydantic** | Data validation & serialization |
-
-### Frontend (Node.js + React)
-
-| Componente | Utilizzo |
-|-----------|----------|
-| **React** | UI component framework |
-| **Vite** | Build tool (dev server hot reload) |
-| **Axios** | HTTP client per API calls |
-| **React-Leaflet** | Integrazione Leaflet (mappe) |
-| **Recharts** | Grafici telemetria |
-| **lucide-react** | Icone UI |
-| **react-player** | Video player |
-
----
-
 ## 🔐 Autenticazione JWT
 
 Il sistema usa **JWT (JSON Web Tokens)** per autenticazione:
@@ -624,32 +632,6 @@ Il sistema usa **JWT (JSON Web Tokens)** per autenticazione:
 5. **Backend** → Verifica firma e scadenza del token
 
 Token di default scade in **24 ore**.
-
----
-
-## 📊 Database Schema
-
-### Tabelle Principali
-
-**users** — Utenti dell'applicazione
-```sql
-id, username, hashed_password, email, is_active, role
-```
-
-**missions** — Definizioni missioni (waypoint + parametri)
-```sql
-id, name, description, speed, rth, photo, waypoints (JSON), created_at
-```
-
-**mission_schedules** — Schedule ricorrenti
-```sql
-id, mission_id, dock_name, schedule_type, recurrence_pattern (JSON), enabled
-```
-
-**mission_executions** — Log di ogni esecuzione
-```sql
-id, mission_id, schedule_id, dock_name, execution_type, status, started_at, result (JSON)
-```
 
 ---
 
@@ -804,9 +786,15 @@ docker-compose exec frontend sh
 
 ---
 
-## 📚 Documentazione Completa
+## 📚 Documentazione
 
-Per documentazione dettagliata su architettura, schema database, flussi di dati, e guida allo sviluppo, consultare la **relazione tecnica** inclusa nella repository.
+Tutta la documentazione tecnica è contenuta in questo README. Qui troverai:
+- Architettura generale del sistema
+- Struttura dettagliata del backend (moduli, layer, responsabilità)
+- Schema database e spiegazione delle tabelle
+- API endpoints disponibili
+- Guida per lo sviluppo e il deployment
+- Esempi di codice per ogni layer
 
 ---
 

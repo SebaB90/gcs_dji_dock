@@ -273,6 +273,100 @@ services:
 
 ---
 
+---
+
+## Componenti Principali del Backend
+
+### **1. Users (Autenticazione)**
+**Endpoint:** `/users`
+
+Gestione utenti e autenticazione JWT:
+- `POST /users/login` — Login e rilascio token JWT
+- `GET /users/current_user` — Dati utente loggato
+- `GET /users/verify-token` — Validazione token
+- `POST /users/create_user` — Creazione nuovo utente (ADMIN only)
+- `GET /users/all_users` — Lista utenti (ADMIN only)
+- `DELETE /users/delete_user/{user_id}` — Elimina utente (ADMIN only)
+
+**Ruoli:** `ADMIN`, `OPERATOR`, `VIEWER`
+
+---
+
+### **2. Missions (Missioni e Scheduling)**
+**Endpoint:** `/missions`
+
+Core system: gestisce il ciclo di vita delle missioni (Create → Schedule → Execute → Monitor).
+
+**Gestione Missioni (CRUD):**
+- `POST /missions/create_mission` — Crea nuova missione
+- `GET /missions/list_missions` — Elenca tutte le missioni
+- `GET /missions/list/{mission_id}` — Dettagli missione
+- `DELETE /missions/delete/{mission_id}` — Elimina missione
+
+**Scheduling (Temporizzazione):**
+- `POST /missions/schedules/schedule_mission/{mission_id}` — Crea schedule (Once o Recurring su dock specifica)
+- `GET /missions/schedules/list_schedules` — Elenca schedule attive
+- `DELETE /missions/schedules/delete/{schedule_id}` — Rimuove schedule
+
+**Esecuzione (Run & Monitor):**
+- `POST /missions/execute/execute_mission/{mission_id}?dock_name=dock1` — Esecuzione immediata
+- `GET /missions/execute/active_executions` — Missioni in corso
+- `GET /missions/execute/history?dock_name=dock1&limit=50` — Storico esecuzioni
+
+---
+
+### **3. Video (Controllo Telecamere)**
+**Endpoint:** `/api/video`
+
+Gestione fonti video del drone (Wide, Zoom, Thermal):
+- `GET /api/video/source` — Fonte video attuale
+- `POST /api/video/source/{source_name}` — Cambia fonte (wide, zoom, thermal)
+
+---
+
+### **4. Telemetry (Telemetria Drones)**
+**Endpoint:** `/docks`
+
+Dati real-time dai drones via ThingsBoard:
+- `GET /docks/{dock_name}/telemetry` — Telemetria dock in cache RAM (aggiornata ogni secondo)
+
+---
+
+### **5. Scheduler (Cuore del Sistema)**
+**File:** `app/core/scheduler.py`
+
+Engine che gestisce:
+
+1. **Loop Unificato (1Hz):**
+   - Eseguito ogni secondo
+   - Recupera telemetria da ThingsBoard
+   - Aggiorna cache RAM
+   - Verifica stati missioni
+
+2. **State Machine Missioni:**
+   - Traccia lo stato: `scheduled` → `sent_to_tb` → `running` → `completed/failed`
+   - Timeout automatico se il drone non comunica entro 120 secondi
+
+3. **Scheduling (APScheduler):**
+   - **Once:** Esegui a data/ora specifica
+   - **Recurring:** Esegui con cron expression (es. ogni lunedì alle 9:00)
+   - Viene ripristinato al riavvio da `MissionSchedule` nel DB
+
+---
+
+## Flusso di Avvio (Startup)
+
+1. **Logger configurato** (colorato e pulito)
+2. **Database inizializzato** (SQLAlchemy)
+3. **Admin user creato** (se non esiste) — username/password da `.env`
+4. **HTTP Client globale** — con retry automatici (3 tentativi)
+5. **ThingsBoard Client** — autenticazione e caching token
+6. **Scheduler avviato** — loop 1Hz e ripristino schedules dal DB
+7. **Video Service** — inizializzazione shared memory per stream video
+8. **Endpoints registrati** — 4 router pronti a ricevere richieste
+
+---
+
 #### **main.py**
 Entry point dell'applicazione FastAPI. Qui si:
 - Crea l'istanza `FastAPI()`

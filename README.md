@@ -367,6 +367,245 @@ Engine che gestisce:
 
 ---
 
+# 🎨 Frontend Architecture
+
+## Tech Stack
+
+- **React 18** — UI framework
+- **Vite** — Build tool (dev server veloce)
+- **Axios** — HTTP client con interceptor JWT
+- **React Leaflet** — Mappa interattiva (Leaflet.js)
+- **Lucide Icons** — Icone moderne
+- **Context API** — State management (autenticazione)
+
+---
+
+## Struttura Pagine
+
+### **LoginPage** (`/`)
+Pagina di accesso con form username/password.
+
+**Funzionalità:**
+- Form validation (username + password)
+- Mostra/nascondi password
+- Messaggio di errore personalizzato (401, network error, ecc.)
+- Loading state durante il login
+
+**Flusso:**
+1. User inserisce credenziali
+2. `AuthContext.login()` chiama `/users/login` backend
+3. Token salvato in `localStorage`
+4. Redirect a `/main` se login success
+
+---
+
+### **MainPage** (dashboard principale)
+Layout principale con **split view orizzontale** (mappa | dashboard) e **split view verticale** (video | missioni).
+
+**Layout:**
+```
+┌─────────────────────────────────────┐
+│         [Sidebar]    [Map]   │ [Video]    │
+│                                [Resize]   │
+│                      │ [Missions]         │
+└─────────────────────────────────────┘
+```
+
+**Componenti principali:**
+- **MapView** — Mappa Leaflet con drone + dock + waypoints
+- **VideoPanel** — Stream video (RTMP/MJPEG da MediaMTX)
+- **MissionStatusPanel** — Schedules + countdown timer + active executions
+- **MissionManager** (sidebar) — CRUD missioni + scheduling
+- **MainSidebar** — Menu: dock1, dock2, admin, logout
+
+**Polling (Real-time Updates):**
+- **Telemetria**: `dock1` e `dock2` ogni **2 secondi**
+  - Estrae: lat/lon drone, battery %, signal, home position
+- **Missioni**: Schedules + executions ogni **5 secondi**
+- **Countdown timer**: Aggiornamento ogni **1 secondo** (next execution)
+
+---
+
+## Servizi (Services Layer)
+
+### **authService** (`services/auth.service.js`)
+Gestione autenticazione e utenti.
+
+**Funzioni:**
+- `login(username, password)` — Login e salvataggio token
+- `logout()` — Rimozione token da localStorage
+- `getCurrentUser()` — Dati utente loggato
+- `getAllUsers()` — Lista utenti (admin only)
+- `createUser(userData)` — Creazione utente (admin only)
+- `deleteUser(userId)` — Cancellazione utente (admin only)
+
+---
+
+### **api** (`services/api.js`)
+Axios instance con interceptor JWT.
+
+**Features:**
+- Aggiunge automaticamente `Authorization: Bearer <token>` a ogni request
+- Timeout: 10 secondi
+- Gestisce errori 401 (unauthorized)
+
+---
+
+### **missionService** (`services/mission.service.js`)
+Gestione missioni, scheduling ed esecuzioni.
+
+**CRUD Missioni:**
+- `createMission(missionData)` — Crea missione con waypoints
+- `getMissions()` — Elenco missioni
+- `getMission(missionId)` — Dettagli missione
+- `deleteMission(missionId)` — Cancella missione
+
+**Scheduling:**
+- `scheduleMission(missionId, scheduleData)` — Schedule (Once o Recurring)
+- `getSchedules()` — Schedules attive (ordinate per next_execution)
+- `deleteSchedule(scheduleId)` — Rimuove schedule
+
+**Esecuzioni:**
+- `executeMission(missionId, dockName)` — Esecuzione immediata
+- `getActiveExecutions()` — Missioni in corso
+- `getExecutionHistory(options)` — Storico esecuzioni
+
+---
+
+### **videoService** (`services/video.service.js`)
+Controllo sorgenti video.
+
+**Funzioni:**
+- `getVideoSource()` — Fonte attuale (wide, zoom, thermal)
+- `setVideoSource(sourceName)` — Cambia fonte (wide, zoom, thermal)
+
+---
+
+### **dockService** (`services/dock.service.js`)
+Dati telemetria dock.
+
+**Funzioni:**
+- `getTelemetry(dockName)` — Telemetria dock (aggiornata in cache RAM backend)
+
+---
+
+## Componenti Principali
+
+### **MapView** (`components/map/MapView.jsx`)
+Mappa interattiva con posizioni drone e dock.
+
+**Features:**
+- **Tile layer**: Mapbox Satellite
+- **Marker drone** — Icona drone + posizione GPS real-time
+- **Marker dock** — Icona DJI Dock + home position
+- **Polyline waypoints** — Traccia percorso missione
+- **Controlli zoom** — Zoom in/out + recenter
+- **Resize handler** — Aggiusta mappa al resize split view
+- **Waypoint editor** — Click sulla mappa per aggiungere waypoint
+
+---
+
+### **VideoPanel** (`components/panels/VideoPanel.jsx`)
+Stream video in iframe (MediaMTX).
+
+**Features:**
+- **StreamFrame** — Container con header e stream video
+- **Source switcher** — Bottoni: Wide, Zoom, Thermal
+- **Telemetry overlay** — Battery, signal, altitude (opzionale)
+- **Live indicator** — Badge "LIVE" con pulsante
+
+---
+
+### **MissionStatusPanel** (`components/panels/MissionStatusPanel.jsx`)
+Dashboard con scheduled missions e executions.
+
+**Mostra:**
+- **Scheduled Missions** — Lista con countdown timer fino a next execution
+- **Active Executions** — Missioni in corso con stato (running, sent_to_tb, ecc.)
+- **Countdown real-time** — Aggiornamento ogni secondo
+
+---
+
+### **MissionManager** (`components/mission/MissionManager.jsx`)
+Editor missioni e scheduling (nel sidebar drawer).
+
+**Funzionalità:**
+- **Tab "Create"** — Form creazione missione
+  - Nome, altitudine, heading, gimbal tilt, hover time, speed, RTH, photo
+  - Preview waypoints nella MiniMap
+  - Bottone "Save Mission"
+  
+- **Tab "My Missions"** — Lista missioni salvate
+  - Seleziona missione
+  - Bottone "Execute Now" (esecuzione immediata)
+  - Bottone "Schedule" (apre modal scheduling)
+  
+- **Tab "Schedules"** — Elenco schedules attive
+  - Mostra next execution e recurrence pattern
+  - Bottone "Delete" per rimuovere schedule
+  
+- **Modal Scheduling**
+  - Tipo: Once (data/ora specifica) oppure Recurring (cron pattern)
+  - Dock: dock1 o dock2
+  - Per Recurring: seleziona giorni + orari
+
+---
+
+### **MainSidebar** (`components/layout/MainSidebar.jsx`)
+Sidebar menu con sezioni navigazione.
+
+**Sezioni:**
+- **Dock 1** — Telemetria dock1 (drawer)
+- **Dock 2** — Telemetria dock2 (drawer)
+- **Missions** — Mission manager (drawer)
+- **Admin** — Gestione utenti (drawer)
+- **Logout** — Esce e cancella token
+
+---
+
+### **SidebarDrawer** (`components/layout/SidebarDrawer.jsx`)
+Pannello scorribile con contenuto dinamico (dock telemetry, missions, ecc.).
+
+**Features:**
+- Visualizzazione telemetria: drone coordinates, battery, signal, home position
+- Waypoint editor integrato
+- MiniMap per preview
+
+---
+
+### **TelemetryPanel** (`components/panels/TelemetryPanel.jsx`)
+Dettagli telemetria estesi (batteria %, signal, altura, velocità, heading).
+
+---
+
+## Flusso Autenticazione (AuthContext)
+
+```
+┌─────────────────────────────────────┐
+│      App
+│      └─ AuthProvider (Context)
+│         ├─ useAuth() hook
+│         ├─ isAuthenticated (bool)
+│         ├─ user (obj)
+│         ├─ loading (bool)
+│         └─ login(), logout()
+└─────────────────────────────────────┘
+```
+
+**Init Flow:**
+1. App monta → AuthProvider legge localStorage
+2. Se esiste token → verifica `/users/current_user`
+3. Se valido → setta `isAuthenticated = true`
+4. Se invalido → logout e mostri LoginPage
+
+**Login Flow:**
+1. User inserisce credenziali in LoginPage
+2. `login(username, password)` → `/users/login`
+3. Token salvato in localStorage
+4. Redirect a MainPage
+
+---
+
 #### **main.py**
 Entry point dell'applicazione FastAPI. Qui si:
 - Crea l'istanza `FastAPI()`

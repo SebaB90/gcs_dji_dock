@@ -32,15 +32,15 @@ Adottiamo uno **stack moderno e standard**:
 
 ## 🚀 Avvio Veloce
 
-### Prerequisites
+### Prerequisiti
 - Docker e Docker Compose
 
-### Start applicazione
+### Avvio applicazione
 ```bash
 docker-compose up -d
 ```
 
-### Accesso
+### Accessi
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
 - **API Docs (Swagger)**: http://localhost:8000/docs
@@ -88,10 +88,10 @@ docker-compose up --build -d
                   ▼
 ┌─────────────────────────────────────┐
 │    BACKEND (FastAPI - Python)       │
-│  ├─ /auth → Autenticazione          │
+│  ├─ /users → Autenticazione         │
 │  ├─ /missions → Gestione Missioni   │
-│  ├─ /telemetry → Dati Real-time     │
-│  ├─ /video → Video Streaming        │
+│  ├─ /docks → Dati Real-time         │
+│  ├─ /api/video → Video Streaming    │
 │  └─ /users → Amministrazione        │
 │                                     │
 │  Core:                              │
@@ -134,7 +134,7 @@ backend/
 │   │   ├── models.py                        # ORM model User
 │   │   ├── schemas.py                       # Pydantic schemas (request/response)
 │   │   ├── service.py                       # Business logic users
-│   │   ├── controller.py                    # FastAPI routes (/users, /auth)
+│   │   ├── controller.py                    # FastAPI routes (/users)
 │   │   └── __init__.py
 │   ├── missions/
 │   │   ├── models.py                        # ORM models (Mission, Schedule, Execution)
@@ -154,7 +154,6 @@ backend/
 │       └── database_gcs_dji.db              # Database SQLite (auto-creato)
 ├── requirements.txt                         # Dipendenze Python (FastAPI, SQLAlchemy, ecc.)
 ├── Dockerfile                               # Immagine Docker per il backend
-├── .env.example                             # Template variabili di ambiente
 └── .env                                     # Variabili di ambiente (gitignored)
 ```
 
@@ -200,11 +199,13 @@ python-jose==3.3.0
 passlib==1.7.4
 bcrypt==4.0.1
 requests==2.32.5
-loguru==latest
+loguru
 pydantic==2.12.0
 pydantic-settings==2.1.0
 python-dotenv==1.1.1
 ```
+
+Nota: nel progetto attuale `loguru` è installato senza pin esplicito di versione.
 
 Installazione: `pip install -r requirements.txt`
 
@@ -293,7 +294,7 @@ Gestione utenti e autenticazione JWT:
 ### **2. Missions (Missioni e Scheduling)**
 **Endpoint:** `/missions`
 
-Core system: gestisce il ciclo di vita delle missioni (Create → Schedule → Execute → Monitor).
+Sistema core: gestisce il ciclo di vita delle missioni (Create → Schedule → Execute → Monitor).
 
 **Gestione Missioni (CRUD):**
 - `POST /missions/create_mission` — Crea nuova missione
@@ -322,10 +323,10 @@ Gestione fonti video del drone (Wide, Zoom, Thermal):
 
 ---
 
-### **4. Telemetry (Telemetria Drones)**
+### **4. Telemetry (Telemetria Drone)**
 **Endpoint:** `/docks`
 
-Dati real-time dai drones via ThingsBoard:
+Dati real-time dai droni via ThingsBoard:
 - `GET /docks/{dock_name}/telemetry` — Telemetria dock in cache RAM (aggiornata ogni secondo)
 
 ---
@@ -347,21 +348,8 @@ Engine che gestisce:
 
 3. **Scheduling (APScheduler):**
    - **Once:** Esegui a data/ora specifica
-   - **Recurring:** Esegui con cron expression (es. ogni lunedì alle 9:00)
+  - **Recurring:** Esegui con espressioni cron (es. ogni lunedì alle 9:00)
    - Viene ripristinato al riavvio da `MissionSchedule` nel DB
-
----
-
-## Flusso di Avvio Backend (Startup)
-
-1. **Logger configurato** (colorato e pulito)
-2. **Database inizializzato** (SQLAlchemy)
-3. **Admin user creato** (se non esiste) — username/password da `.env`
-4. **HTTP Client globale** — con retry automatici (3 tentativi)
-5. **ThingsBoard Client** — autenticazione e caching token
-6. **Scheduler avviato** — loop 1Hz e ripristino schedules dal DB
-7. **Video Service** — inizializzazione shared memory per stream video
-8. **Endpoints registrati** — 4 router pronti a ricevere richieste
 
 ---
 
@@ -396,7 +384,7 @@ Gestione centralizzata della **configurazione** da variabili di ambiente (`.env`
 
 Responsabilità:
 - Leggere `SECRET_KEY`, `DATABASE_URL`, credenziali ThingsBoard, ecc.
-- Esporre variabili come `settings.SECRET_KEY`, `settings.TB_URL`, ecc.
+- Esporre variabili come `settings.SECRET_KEY`, `settings.THINGSBOARD_URL`, ecc.
 - Validare che tutte le config necessarie siano presenti
 
 Esempio:
@@ -407,9 +395,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "GCS DJI Dock"
     SECRET_KEY: str
     DATABASE_URL: str
-    TB_URL: str
-    TB_USERNAME: str
-    TB_PASSWORD: str
+    THINGSBOARD_URL: str
+    TB_USER: str
+    TB_PASS: str
     
     class Config:
         env_file = ".env"
@@ -519,23 +507,24 @@ Responsabilità:
 - Autenticarsi a ThingsBoard (login → JWT token)
 - Inviare missioni a ThingsBoard (`POST /api/adpm/missions/execute`)
 - Pollare lo stato di una missione (`GET /api/adpm/missions/{id}/status`)
-- Fetch dati telemetrici del drone (`GET /api/plugins/telemetry/{device_id}/values/timeseries`)
+- Recuperare dati telemetrici del drone (`GET /api/plugins/telemetry/{device_id}/values/timeseries`)
 - Gestire retry logic e caching del token
 
 Esempio:
 ```python
 class ThingsBoardClient:
     def __init__(self, http_session):
-        self.base_url = settings.TB_URL
+    self.base_url = settings.THINGSBOARD_URL
         self.token_cache = None
     
     def get_token(self):
         if self.token_cache and not self.token_cache.expired:
             return self.token_cache.value
         
-        response = self.session.post(f"{self.base_url}/api/auth/login", 
-                                      json={"username": settings.TB_USERNAME, 
-                                            "password": settings.TB_PASSWORD})
+        response = self.session.post(
+            f"{self.base_url}/api/auth/login",
+            json={"username": settings.TB_USER, "password": settings.TB_PASS}
+        )
         token = response.json()['token']
         self.token_cache = CachedToken(token)
         return token
@@ -756,7 +745,7 @@ Token di default scade in **60 minuti**.
 
 ## Tech Stack Frontend
 
-- **React 18** — UI framework
+- **React 19** — UI framework
 - **Vite** — Build tool (dev server veloce)
 - **Axios** — HTTP client con interceptor JWT
 - **React Leaflet** — Mappa interattiva (Leaflet.js)
@@ -768,7 +757,7 @@ Token di default scade in **60 minuti**.
 ## Struttura Pagine Frontend
 
 ### **LoginPage** (`pages/LoginPage.jsx`)
-Pagina di accesso con form username/password.
+Pagina di accesso con modulo username/password.
 
 **Funzionalità:**
 - Form validation (username + password)
@@ -777,7 +766,7 @@ Pagina di accesso con form username/password.
 - Loading state durante il login
 
 **Flusso:**
-1. User inserisce credenziali
+1. L'utente inserisce le credenziali
 2. `AuthContext.login()` chiama `/users/login` backend
 3. Token salvato in `localStorage`
 4. Redirect a `/main` se login success
@@ -981,10 +970,10 @@ Dettagli telemetria estesi (batteria %, signal, altura, velocità, heading).
 1. App monta → AuthProvider legge localStorage
 2. Se esiste token → verifica `/users/current_user`
 3. Se valido → setta `isAuthenticated = true`
-4. Se invalido → logout e mostri LoginPage
+4. Se invalido → logout e mostra LoginPage
 
 **Login Flow:**
-1. User inserisce credenziali in LoginPage
+1. L'utente inserisce le credenziali in LoginPage
 2. `login(username, password)` → `/users/login`
 3. Token salvato in localStorage
 4. Redirect a MainPage
@@ -1002,7 +991,7 @@ DATABASE_URL=sqlite:///./app/database/database_gcs_dji.db
 GCS_USERNAME=admin
 GCS_PASSWORD=admin123
 
-TB_URL=http://thingsboard.example.com:8080
+THINGSBOARD_URL=http://thingsboard.example.com:8080
 TB_USER=gcs_user
 TB_PASS=password
 
@@ -1060,7 +1049,7 @@ VITE_MAPBOX_TOKEN=<mapbox-public-token>
 
 # 📖 Guida allo Sviluppo
 
-## Backend (Development)
+## Backend (Sviluppo)
 
 ```bash
 cd backend
@@ -1068,8 +1057,7 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-cp .env.example .env
-# Edita .env con credenziali
+# Crea backend/.env e inserisci le variabili di configurazione
 
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -1078,14 +1066,13 @@ Server disponibile su http://localhost:8000 con hot reload.
 
 ---
 
-## Frontend (Development)
+## Frontend (Sviluppo)
 
 ```bash
 cd frontend
 npm install
 
-cp .env.example .env
-# Edita .env con VITE_BACKEND_URL=http://localhost:8000
+# Crea frontend/.env e inserisci le variabili VITE_*
 
 npm run dev
 ```
@@ -1107,40 +1094,11 @@ docker-compose logs -f backend
 docker-compose logs -f frontend
 ```
 
-## Accesso shell container
+## Accesso alla shell dei container
 ```bash
 docker-compose exec backend bash
 docker-compose exec frontend sh
 ```
-
----
-
-# ✅ Checklist Deployment
-
-- [ ] Docker e Docker Compose installati
-- [ ] Repository clonato
-- [ ] File `.env` backend configurati
-- [ ] File `.env` frontend configurati
-- [ ] `docker-compose up --build -d` eseguito con successo
-- [ ] Frontend accessibile su http://localhost:5173
-- [ ] Backend accessibile su http://localhost:8000/docs
-- [ ] Credenziali login (admin/admin123) funzionanti
-- [ ] Missione di test creata e lanciata
-- [ ] Telemetria attiva
-
----
-
-## 📚 Documentazione
-
-Tutta la documentazione tecnica è contenuta in questo README. Qui troverai:
-- Architettura generale del sistema
-- Struttura dettagliata del backend (moduli, layer, responsabilità)
-- Schema database e spiegazione delle tabelle
-- Struttura e componenti del frontend
-- API endpoints disponibili
-- Guida per lo sviluppo e il deployment
-- Esempi di codice per ogni layer
-
 ---
 
 ## 🤝 Supporto

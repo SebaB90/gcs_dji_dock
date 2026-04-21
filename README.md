@@ -109,6 +109,8 @@ docker-compose up --build -d
 
 ---
 
+# 🔧 PARTE BACKEND
+
 ## 📂 Struttura Backend
 
 Il backend è organizzato in **moduli tematici**, ognuno con una **struttura coerente e prevedibile**.
@@ -142,23 +144,21 @@ backend/
 │   │   └── __init__.py
 │   ├── telemetry/
 │   │   ├── service.py                       # Fetch telemetry da ThingsBoard
-│   │   ├── controller.py                    # WebSocket routes (/ws/telemetry)
+│   │   ├── controller.py                    # FastAPI routes (/docks)
 │   │   └── __init__.py
 │   ├── video/
 │   │   ├── service.py                       # Video streaming (shared memory)
-│   │   ├── controller.py                    # FastAPI routes (/video)
+│   │   ├── controller.py                    # FastAPI routes (/api/video)
 │   │   └── __init__.py
 │   └── database/
-│       └── gcs.db                           # Database SQLite (auto-creato)
+│       └── database_gcs_dji.db              # Database SQLite (auto-creato)
 ├── requirements.txt                         # Dipendenze Python (FastAPI, SQLAlchemy, ecc.)
 ├── Dockerfile                               # Immagine Docker per il backend
 ├── .env.example                             # Template variabili di ambiente
 └── .env                                     # Variabili di ambiente (gitignored)
 ```
 
-### Spiegazione della Struttura
-
-#### **Ambiente e Dipendenze**
+### Ambiente e Dipendenze
 
 Il backend gestisce le dipendenze Python in tre livelli:
 
@@ -273,8 +273,6 @@ services:
 
 ---
 
----
-
 ## Componenti Principali del Backend
 
 ### **1. Users (Autenticazione)**
@@ -354,7 +352,7 @@ Engine che gestisce:
 
 ---
 
-## Flusso di Avvio (Startup)
+## Flusso di Avvio Backend (Startup)
 
 1. **Logger configurato** (colorato e pulito)
 2. **Database inizializzato** (SQLAlchemy)
@@ -367,246 +365,9 @@ Engine che gestisce:
 
 ---
 
-# 🎨 Frontend Architecture
+## Dettagli Componenti Backend
 
-## Tech Stack
-
-- **React 18** — UI framework
-- **Vite** — Build tool (dev server veloce)
-- **Axios** — HTTP client con interceptor JWT
-- **React Leaflet** — Mappa interattiva (Leaflet.js)
-- **Lucide Icons** — Icone moderne
-- **Context API** — State management (autenticazione)
-
----
-
-## Struttura Pagine
-
-### **LoginPage** (`/`)
-Pagina di accesso con form username/password.
-
-**Funzionalità:**
-- Form validation (username + password)
-- Mostra/nascondi password
-- Messaggio di errore personalizzato (401, network error, ecc.)
-- Loading state durante il login
-
-**Flusso:**
-1. User inserisce credenziali
-2. `AuthContext.login()` chiama `/users/login` backend
-3. Token salvato in `localStorage`
-4. Redirect a `/main` se login success
-
----
-
-### **MainPage** (dashboard principale)
-Layout principale con **split view orizzontale** (mappa | dashboard) e **split view verticale** (video | missioni).
-
-**Layout:**
-```
-┌─────────────────────────────────────┐
-│         [Sidebar]    [Map]   │ [Video]    │
-│                                [Resize]   │
-│                      │ [Missions]         │
-└─────────────────────────────────────┘
-```
-
-**Componenti principali:**
-- **MapView** — Mappa Leaflet con drone + dock + waypoints
-- **VideoPanel** — Stream video (RTMP/MJPEG da MediaMTX)
-- **MissionStatusPanel** — Schedules + countdown timer + active executions
-- **MissionManager** (sidebar) — CRUD missioni + scheduling
-- **MainSidebar** — Menu: dock1, dock2, admin, logout
-
-**Polling (Real-time Updates):**
-- **Telemetria**: `dock1` e `dock2` ogni **2 secondi**
-  - Estrae: lat/lon drone, battery %, signal, home position
-- **Missioni**: Schedules + executions ogni **5 secondi**
-- **Countdown timer**: Aggiornamento ogni **1 secondo** (next execution)
-
----
-
-## Servizi (Services Layer)
-
-### **authService** (`services/auth.service.js`)
-Gestione autenticazione e utenti.
-
-**Funzioni:**
-- `login(username, password)` — Login e salvataggio token
-- `logout()` — Rimozione token da localStorage
-- `getCurrentUser()` — Dati utente loggato
-- `getAllUsers()` — Lista utenti (admin only)
-- `createUser(userData)` — Creazione utente (admin only)
-- `deleteUser(userId)` — Cancellazione utente (admin only)
-
----
-
-### **api** (`services/api.js`)
-Axios instance con interceptor JWT.
-
-**Features:**
-- Aggiunge automaticamente `Authorization: Bearer <token>` a ogni request
-- Timeout: 10 secondi
-- Gestisce errori 401 (unauthorized)
-
----
-
-### **missionService** (`services/mission.service.js`)
-Gestione missioni, scheduling ed esecuzioni.
-
-**CRUD Missioni:**
-- `createMission(missionData)` — Crea missione con waypoints
-- `getMissions()` — Elenco missioni
-- `getMission(missionId)` — Dettagli missione
-- `deleteMission(missionId)` — Cancella missione
-
-**Scheduling:**
-- `scheduleMission(missionId, scheduleData)` — Schedule (Once o Recurring)
-- `getSchedules()` — Schedules attive (ordinate per next_execution)
-- `deleteSchedule(scheduleId)` — Rimuove schedule
-
-**Esecuzioni:**
-- `executeMission(missionId, dockName)` — Esecuzione immediata
-- `getActiveExecutions()` — Missioni in corso
-- `getExecutionHistory(options)` — Storico esecuzioni
-
----
-
-### **videoService** (`services/video.service.js`)
-Controllo sorgenti video.
-
-**Funzioni:**
-- `getVideoSource()` — Fonte attuale (wide, zoom, thermal)
-- `setVideoSource(sourceName)` — Cambia fonte (wide, zoom, thermal)
-
----
-
-### **dockService** (`services/dock.service.js`)
-Dati telemetria dock.
-
-**Funzioni:**
-- `getTelemetry(dockName)` — Telemetria dock (aggiornata in cache RAM backend)
-
----
-
-## Componenti Principali
-
-### **MapView** (`components/map/MapView.jsx`)
-Mappa interattiva con posizioni drone e dock.
-
-**Features:**
-- **Tile layer**: Mapbox Satellite
-- **Marker drone** — Icona drone + posizione GPS real-time
-- **Marker dock** — Icona DJI Dock + home position
-- **Polyline waypoints** — Traccia percorso missione
-- **Controlli zoom** — Zoom in/out + recenter
-- **Resize handler** — Aggiusta mappa al resize split view
-- **Waypoint editor** — Click sulla mappa per aggiungere waypoint
-
----
-
-### **VideoPanel** (`components/panels/VideoPanel.jsx`)
-Stream video in iframe (MediaMTX).
-
-**Features:**
-- **StreamFrame** — Container con header e stream video
-- **Source switcher** — Bottoni: Wide, Zoom, Thermal
-- **Telemetry overlay** — Battery, signal, altitude (opzionale)
-- **Live indicator** — Badge "LIVE" con pulsante
-
----
-
-### **MissionStatusPanel** (`components/panels/MissionStatusPanel.jsx`)
-Dashboard con scheduled missions e executions.
-
-**Mostra:**
-- **Scheduled Missions** — Lista con countdown timer fino a next execution
-- **Active Executions** — Missioni in corso con stato (running, sent_to_tb, ecc.)
-- **Countdown real-time** — Aggiornamento ogni secondo
-
----
-
-### **MissionManager** (`components/mission/MissionManager.jsx`)
-Editor missioni e scheduling (nel sidebar drawer).
-
-**Funzionalità:**
-- **Tab "Create"** — Form creazione missione
-  - Nome, altitudine, heading, gimbal tilt, hover time, speed, RTH, photo
-  - Preview waypoints nella MiniMap
-  - Bottone "Save Mission"
-  
-- **Tab "My Missions"** — Lista missioni salvate
-  - Seleziona missione
-  - Bottone "Execute Now" (esecuzione immediata)
-  - Bottone "Schedule" (apre modal scheduling)
-  
-- **Tab "Schedules"** — Elenco schedules attive
-  - Mostra next execution e recurrence pattern
-  - Bottone "Delete" per rimuovere schedule
-  
-- **Modal Scheduling**
-  - Tipo: Once (data/ora specifica) oppure Recurring (cron pattern)
-  - Dock: dock1 o dock2
-  - Per Recurring: seleziona giorni + orari
-
----
-
-### **MainSidebar** (`components/layout/MainSidebar.jsx`)
-Sidebar menu con sezioni navigazione.
-
-**Sezioni:**
-- **Dock 1** — Telemetria dock1 (drawer)
-- **Dock 2** — Telemetria dock2 (drawer)
-- **Missions** — Mission manager (drawer)
-- **Admin** — Gestione utenti (drawer)
-- **Logout** — Esce e cancella token
-
----
-
-### **SidebarDrawer** (`components/layout/SidebarDrawer.jsx`)
-Pannello scorribile con contenuto dinamico (dock telemetry, missions, ecc.).
-
-**Features:**
-- Visualizzazione telemetria: drone coordinates, battery, signal, home position
-- Waypoint editor integrato
-- MiniMap per preview
-
----
-
-### **TelemetryPanel** (`components/panels/TelemetryPanel.jsx`)
-Dettagli telemetria estesi (batteria %, signal, altura, velocità, heading).
-
----
-
-## Flusso Autenticazione (AuthContext)
-
-```
-┌─────────────────────────────────────┐
-│      App
-│      └─ AuthProvider (Context)
-│         ├─ useAuth() hook
-│         ├─ isAuthenticated (bool)
-│         ├─ user (obj)
-│         ├─ loading (bool)
-│         └─ login(), logout()
-└─────────────────────────────────────┘
-```
-
-**Init Flow:**
-1. App monta → AuthProvider legge localStorage
-2. Se esiste token → verifica `/users/current_user`
-3. Se valido → setta `isAuthenticated = true`
-4. Se invalido → logout e mostri LoginPage
-
-**Login Flow:**
-1. User inserisce credenziali in LoginPage
-2. `login(username, password)` → `/users/login`
-3. Token salvato in localStorage
-4. Redirect a MainPage
-
----
-
-#### **main.py**
+### **main.py**
 Entry point dell'applicazione FastAPI. Qui si:
 - Crea l'istanza `FastAPI()`
 - Registra i router di tutti i moduli
@@ -620,7 +381,7 @@ from app.users.controller import router as users_router
 from app.missions.controller import router as missions_router
 
 app = FastAPI()
-app.include_router(users_router, prefix="/auth")
+app.include_router(users_router, prefix="/users")
 app.include_router(missions_router, prefix="/missions")
 ```
 
@@ -708,7 +469,7 @@ Esempio:
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///./app/database/gcs.db"
+DATABASE_URL = "sqlite:///./app/database/database_gcs_dji.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
@@ -864,30 +625,6 @@ class UserResponse(BaseModel):
         from_attributes = True  # Legge da ORM model
 ```
 
-Esempio (missions):
-```python
-class WaypointSchema(BaseModel):
-    lat: float
-    lon: float
-    alt: float
-    heading: int = 0
-    tilt_gimbal: int = -45
-
-class MissionCreate(BaseModel):
-    name: str
-    description: str
-    speed: float = 1.0
-    rth: bool = True
-    waypoints: list[WaypointSchema]
-
-class MissionResponse(BaseModel):
-    id: int
-    name: str
-    speed: float
-    waypoints: list[WaypointSchema]
-    created_at: datetime
-```
-
 ---
 
 #### 3️⃣ **service.py** — Business Logic Layer
@@ -932,52 +669,6 @@ class UserService:
         return user
 ```
 
-Esempio (missions):
-```python
-class MissionService:
-    def __init__(self, db: Session, tb_client: ThingsBoardClient):
-        self.db = db
-        self.tb_client = tb_client
-    
-    def create_mission(self, mission_create: MissionCreate) -> Mission:
-        mission = Mission(
-            name=mission_create.name,
-            speed=mission_create.speed,
-            waypoints=mission_create.waypoints,
-            rth=mission_create.rth
-        )
-        self.db.add(mission)
-        self.db.commit()
-        return mission
-    
-    def execute_mission(self, mission_id: int, dock_name: str) -> MissionExecution:
-        mission = self.db.query(Mission).get(mission_id)
-        if not mission:
-            raise ValueError("Mission not found")
-        
-        # Chiama API ThingsBoard per mandare la missione al drone
-        result = self.tb_client.execute_mission(
-            dock_id=dock_name,
-            mission_data={
-                "speed": mission.speed,
-                "rth": mission.rth,
-                "waypoints": mission.waypoints
-            }
-        )
-        
-        # Salva execution nel database
-        execution = MissionExecution(
-            mission_id=mission_id,
-            dock_name=dock_name,
-            execution_type="manual",
-            status="sent_to_tb",
-            result=result
-        )
-        self.db.add(execution)
-        self.db.commit()
-        return execution
-```
-
 ---
 
 #### 4️⃣ **controller.py** — FastAPI Routes (Routers)
@@ -1012,38 +703,11 @@ async def create_user(user_create: UserCreate, db: Session = Depends(get_db)):
     # Crea utente
     user = service.create_user(user_create)
     return user
-
-@router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    service = UserService(db)
-    user = db.query(User).get(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-```
-
-Esempio (missions):
-```python
-@router.post("/{mission_id}/execute", response_model=MissionExecutionResponse)
-async def execute_mission(
-    mission_id: int,
-    execute_request: MissionExecuteRequest,
-    db: Session = Depends(get_db)
-):
-    service = MissionService(db, tb_client=get_tb_client())
-    
-    try:
-        execution = service.execute_mission(mission_id, execute_request.dock_name)
-        return execution
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to execute mission")
 ```
 
 ---
 
-### Flusso di una Richiesta HTTP
+### Flusso di una Richiesta HTTP (Backend)
 
 Ecco come una richiesta HTTP passa attraverso il backend:
 
@@ -1078,90 +742,315 @@ Ecco come una richiesta HTTP passa attraverso il backend:
 
 Il sistema usa **JWT (JSON Web Tokens)** per autenticazione:
 
-1. **Login** → POST `/auth/login` con username/password
+1. **Login** → POST `/users/login` con username/password
 2. **Backend** → Verifica credenziali, genera JWT token
 3. **Frontend** → Salva token in localStorage
 4. **Richieste successive** → Include token nel header `Authorization: Bearer <token>`
 5. **Backend** → Verifica firma e scadenza del token
 
-Token di default scade in **24 ore**.
+Token di default scade in **60 minuti**.
 
 ---
 
-## 🌐 Frontend
+# 🎨 PARTE FRONTEND
 
-Frontend React con:
-- **Mappa interattiva** Mapbox satellite
-- **Panel telemetria** con grafici real-time (Recharts)
-- **Video player** HLS per streaming drone
-- **Mission editor** con waypoint click-to-place
-- **Admin panel** per gestione utenti
+## Tech Stack Frontend
 
-Struttura:
-```
-frontend/src/
-├── pages/ → LoginPage, MainPage
-├── components/
-│   ├── layout/ → Sidebar, Navigation
-│   ├── panels/ → TelemetryPanel, MissionPanel, VideoPanel
-│   └── admin/ → UsersManagement
-└── assets/ → Icone, immagini
-```
+- **React 18** — UI framework
+- **Vite** — Build tool (dev server veloce)
+- **Axios** — HTTP client con interceptor JWT
+- **React Leaflet** — Mappa interattiva (Leaflet.js)
+- **Lucide Icons** — Icone moderne
+- **Context API** — State management (autenticazione)
 
 ---
 
-## 🔧 Configurazione
+## Struttura Pagine Frontend
 
-### Backend (.env)
+### **LoginPage** (`pages/LoginPage.jsx`)
+Pagina di accesso con form username/password.
+
+**Funzionalità:**
+- Form validation (username + password)
+- Mostra/nascondi password
+- Messaggio di errore personalizzato (401, network error, ecc.)
+- Loading state durante il login
+
+**Flusso:**
+1. User inserisce credenziali
+2. `AuthContext.login()` chiama `/users/login` backend
+3. Token salvato in `localStorage`
+4. Redirect a `/main` se login success
+
+---
+
+### **MainPage** (`pages/MainPage.jsx`)
+Layout principale con **split view orizzontale** (mappa | dashboard) e **split view verticale** (video | missioni).
+
+**Layout:**
+```
+┌─────────────────────────────────────┐
+│         [Sidebar]    [Map]   │ [Video]    │
+│                                [Resize]   │
+│                      │ [Missions]         │
+└─────────────────────────────────────┘
+```
+
+**Componenti principali:**
+- **MapView** — Mappa Leaflet con drone + dock + waypoints
+- **VideoPanel** — Stream video (RTMP/MJPEG da MediaMTX)
+- **MissionStatusPanel** — Schedules + countdown timer + active executions
+- **MissionManager** (sidebar) — CRUD missioni + scheduling
+- **MainSidebar** — Menu: dock1, dock2, admin, logout
+
+**Polling (Real-time Updates):**
+- **Telemetria**: `dock1` e `dock2` ogni **2 secondi**
+  - Estrae: lat/lon drone, battery %, signal, home position
+- **Missioni**: Schedules + executions ogni **5 secondi**
+- **Countdown timer**: Aggiornamento ogni **1 secondo** (next execution)
+
+---
+
+## Servizi Frontend (Services Layer)
+
+### **authService** (`services/auth.service.js`)
+Gestione autenticazione e utenti.
+
+**Funzioni:**
+- `login(username, password)` — Login e salvataggio token
+- `logout()` — Rimozione token da localStorage
+- `getCurrentUser()` — Dati utente loggato
+- `getAllUsers()` — Lista utenti (admin only)
+- `createUser(userData)` — Creazione utente (admin only)
+- `deleteUser(userId)` — Cancellazione utente (admin only)
+
+---
+
+### **api** (`services/api.js`)
+Axios instance con interceptor JWT.
+
+**Features:**
+- Aggiunge automaticamente `Authorization: Bearer <token>` a ogni request
+- Timeout: 10 secondi
+- Gestisce errori 401 (unauthorized)
+
+---
+
+### **missionService** (`services/mission.service.js`)
+Gestione missioni, scheduling ed esecuzioni.
+
+**CRUD Missioni:**
+- `createMission(missionData)` — Crea missione con waypoints
+- `getMissions()` — Elenco missioni
+- `getMission(missionId)` — Dettagli missione
+- `deleteMission(missionId)` — Cancella missione
+
+**Scheduling:**
+- `scheduleMission(missionId, scheduleData)` — Schedule (Once o Recurring)
+- `getSchedules()` — Schedules attive (ordinate per next_execution)
+- `deleteSchedule(scheduleId)` — Rimuove schedule
+
+**Esecuzioni:**
+- `executeMission(missionId, dockName)` — Esecuzione immediata
+- `getActiveExecutions()` — Missioni in corso
+- `getExecutionHistory(options)` — Storico esecuzioni
+
+---
+
+### **videoService** (`services/video.service.js`)
+Controllo sorgenti video.
+
+**Funzioni:**
+- `getVideoSource()` — Fonte attuale (wide, zoom, thermal)
+- `setVideoSource(sourceName)` — Cambia fonte (wide, zoom, thermal)
+
+---
+
+### **dockService** (`services/dock.service.js`)
+Dati telemetria dock.
+
+**Funzioni:**
+- `getTelemetry(dockName)` — Telemetria dock (aggiornata in cache RAM backend)
+
+---
+
+## Componenti Principali Frontend
+
+### **MapView** (`components/map/MapView.jsx`)
+Mappa interattiva con posizioni drone e dock.
+
+**Features:**
+- **Tile layer**: Mapbox Satellite
+- **Marker drone** — Icona drone + posizione GPS real-time
+- **Marker dock** — Icona DJI Dock + home position
+- **Polyline waypoints** — Traccia percorso missione
+- **Controlli zoom** — Zoom in/out + recenter
+- **Resize handler** — Aggiusta mappa al resize split view
+- **Waypoint editor** — Click sulla mappa per aggiungere waypoint
+
+---
+
+### **VideoPanel** (`components/panels/VideoPanel.jsx`)
+Stream video in iframe (MediaMTX).
+
+**Features:**
+- **StreamFrame** — Container con header e stream video
+- **Source switcher** — Bottoni: Wide, Zoom, Thermal
+- **Telemetry overlay** — Battery, signal, altitude (opzionale)
+- **Live indicator** — Badge "LIVE" con pulsante
+
+---
+
+### **MissionStatusPanel** (`components/panels/MissionStatusPanel.jsx`)
+Dashboard con scheduled missions e executions.
+
+**Mostra:**
+- **Scheduled Missions** — Lista con countdown timer fino a next execution
+- **Active Executions** — Missioni in corso con stato (running, sent_to_tb, ecc.)
+- **Countdown real-time** — Aggiornamento ogni secondo
+
+---
+
+### **MissionManager** (`components/mission/MissionManager.jsx`)
+Editor missioni e scheduling (nel sidebar drawer).
+
+**Funzionalità:**
+- **Tab "Create"** — Form creazione missione
+  - Nome, altitudine, heading, gimbal tilt, hover time, speed, RTH, photo
+  - Preview waypoints nella MiniMap
+  - Bottone "Save Mission"
+  
+- **Tab "My Missions"** — Lista missioni salvate
+  - Seleziona missione
+  - Bottone "Execute Now" (esecuzione immediata)
+  - Bottone "Schedule" (apre modal scheduling)
+  
+- **Tab "Schedules"** — Elenco schedules attive
+  - Mostra next execution e recurrence pattern
+  - Bottone "Delete" per rimuovere schedule
+  
+- **Modal Scheduling**
+  - Tipo: Once (data/ora specifica) oppure Recurring (cron pattern)
+  - Dock: dock1 o dock2
+  - Per Recurring: seleziona giorni + orari
+
+---
+
+### **MainSidebar** (`components/layout/MainSidebar.jsx`)
+Sidebar menu con sezioni navigazione.
+
+**Sezioni:**
+- **Dock 1** — Telemetria dock1 (drawer)
+- **Dock 2** — Telemetria dock2 (drawer)
+- **Missions** — Mission manager (drawer)
+- **Admin** — Gestione utenti (drawer)
+- **Logout** — Esce e cancella token
+
+---
+
+### **SidebarDrawer** (`components/layout/SidebarDrawer.jsx`)
+Pannello scorribile con contenuto dinamico (dock telemetry, missions, ecc.).
+
+**Features:**
+- Visualizzazione telemetria: drone coordinates, battery, signal, home position
+- Waypoint editor integrato
+- MiniMap per preview
+
+---
+
+### **TelemetryPanel** (`components/panels/TelemetryPanel.jsx`)
+Dettagli telemetria estesi (batteria %, signal, altura, velocità, heading).
+
+---
+
+## Flusso Autenticazione (AuthContext)
+
+```
+┌─────────────────────────────────────┐
+│      App
+│      └─ AuthProvider (Context)
+│         ├─ useAuth() hook
+│         ├─ isAuthenticated (bool)
+│         ├─ user (obj)
+│         ├─ loading (bool)
+│         └─ login(), logout()
+└─────────────────────────────────────┘
+```
+
+**Init Flow:**
+1. App monta → AuthProvider legge localStorage
+2. Se esiste token → verifica `/users/current_user`
+3. Se valido → setta `isAuthenticated = true`
+4. Se invalido → logout e mostri LoginPage
+
+**Login Flow:**
+1. User inserisce credenziali in LoginPage
+2. `login(username, password)` → `/users/login`
+3. Token salvato in localStorage
+4. Redirect a MainPage
+
+---
+
+# ⚙️ Configurazione
+
+## Backend (.env)
 ```env
 APP_NAME=GCS DJI Dock
 SECRET_KEY=<strong-secret>
-DATABASE_URL=sqlite:///./app/database/gcs.db
+DATABASE_URL=sqlite:///./app/database/database_gcs_dji.db
+
+GCS_USERNAME=admin
+GCS_PASSWORD=admin123
 
 TB_URL=http://thingsboard.example.com:8080
-TB_USERNAME=gcs_user
-TB_PASSWORD=password
+TB_USER=gcs_user
+TB_PASS=password
 
-ACCESS_TOKEN_EXPIRE_HOURS=24
+ACCESS_TOKEN_EXPIRE_MINUTES=60
 ```
 
-### Frontend (.env)
+## Frontend (.env)
 ```env
-VITE_API_URL=http://localhost:8000
-MAPBOX_TOKEN=<mapbox-public-token>
+VITE_BACKEND_URL=http://localhost:8000
+VITE_MAPBOX_TOKEN=<mapbox-public-token>
 ```
 
 ---
 
-## 📝 API Endpoints Principali
+# 📝 API Endpoints Principali (Backend)
 
 ### Autenticazione
-- `POST /auth/login` — Login e riceve JWT token
+- `POST /users/login` — Login e riceve JWT token
+- `GET /users/current_user` — Dati utente loggato
+- `GET /users/verify-token` — Verifica token
 
 ### Missioni
-- `GET /missions` — Lista missioni
-- `POST /missions` — Crea missione
-- `POST /missions/{id}/execute` — Esegui missione immediatamente
-- `GET /missions/{id}/executions` — Storico esecuzioni
+- `GET /missions/list_missions` — Lista missioni
+- `POST /missions/create_mission` — Crea missione
+- `GET /missions/list/{mission_id}` — Dettagli missione
+- `DELETE /missions/delete/{mission_id}` — Elimina missione
 
 ### Schedule
-- `POST /missions/{id}/schedules` — Crea schedule ricorrente
-- `GET /missions/{id}/schedules` — Lista schedule
+- `POST /missions/schedules/schedule_mission/{mission_id}` — Crea schedule
+- `GET /missions/schedules/list_schedules` — Lista schedule
+- `DELETE /missions/schedules/delete/{schedule_id}` — Rimuove schedule
+
+### Esecuzioni
+- `POST /missions/execute/execute_mission/{mission_id}?dock_name=dock1` — Esecuzione immediata
+- `GET /missions/execute/active_executions` — Missioni in corso
+- `GET /missions/execute/history` — Storico esecuzioni
 
 ### Telemetria
-- `WS /ws/telemetry` — WebSocket real-time telemetry
-- `GET /telemetry/latest` — Ultimo snapshot telemetry
+- `GET /docks/{dock_name}/telemetry` — Telemetria dock
 
 ### Video
-- `POST /video/start` — Avvia streaming
-- `GET /video/stream.m3u8` — HLS manifest
-- `POST /video/stop` — Arresta streaming
+- `GET /api/video/source` — Fonte video attuale
+- `POST /api/video/source/{source_name}` — Cambia fonte
 
 ### Utenti (Admin)
-- `GET /users` — Lista utenti
-- `POST /users` — Crea utente
-- `PUT /users/{id}` — Modifica utente
-- `DELETE /users/{id}` — Elimina utente
+- `GET /users/all_users` — Lista utenti
+- `POST /users/create_user` — Crea utente
+- `DELETE /users/delete_user/{user_id}` — Elimina utente
 
 ### Documentazione interattiva
 - **Swagger UI**: http://localhost:8000/docs
@@ -1169,9 +1058,9 @@ MAPBOX_TOKEN=<mapbox-public-token>
 
 ---
 
-## 📖 Guida allo Sviluppo
+# 📖 Guida allo Sviluppo
 
-### Backend (Development)
+## Backend (Development)
 
 ```bash
 cd backend
@@ -1187,14 +1076,16 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Server disponibile su http://localhost:8000 con hot reload.
 
-### Frontend (Development)
+---
+
+## Frontend (Development)
 
 ```bash
 cd frontend
 npm install
 
 cp .env.example .env
-# Edita .env con VITE_API_URL=http://localhost:8000
+# Edita .env con VITE_BACKEND_URL=http://localhost:8000
 
 npm run dev
 ```
@@ -1203,20 +1094,20 @@ Dev server su http://localhost:5173 con hot reload.
 
 ---
 
-## 🐳 Deployment con Docker
+# 🐳 Deployment con Docker
 
-### Build e avvio
+## Build e avvio
 ```bash
 docker-compose up --build -d
 ```
 
-### Vedere log
+## Vedere log
 ```bash
 docker-compose logs -f backend
 docker-compose logs -f frontend
 ```
 
-### Accesso shell container
+## Accesso shell container
 ```bash
 docker-compose exec backend bash
 docker-compose exec frontend sh
@@ -1224,7 +1115,7 @@ docker-compose exec frontend sh
 
 ---
 
-## ✅ Checklist Deployment
+# ✅ Checklist Deployment
 
 - [ ] Docker e Docker Compose installati
 - [ ] Repository clonato
@@ -1235,7 +1126,7 @@ docker-compose exec frontend sh
 - [ ] Backend accessibile su http://localhost:8000/docs
 - [ ] Credenziali login (admin/admin123) funzionanti
 - [ ] Missione di test creata e lanciata
-- [ ] WebSocket telemetry attivo
+- [ ] Telemetria attiva
 
 ---
 
@@ -1245,6 +1136,7 @@ Tutta la documentazione tecnica è contenuta in questo README. Qui troverai:
 - Architettura generale del sistema
 - Struttura dettagliata del backend (moduli, layer, responsabilità)
 - Schema database e spiegazione delle tabelle
+- Struttura e componenti del frontend
 - API endpoints disponibili
 - Guida per lo sviluppo e il deployment
 - Esempi di codice per ogni layer
